@@ -1,5 +1,10 @@
 #! /usr/bin/env perl
 
+use v5.26;
+use strict;
+use warnings;
+use utf8;
+
 print <<'END_OF_HEAD';
 Content-Type: text/html; charset=UTF-8
 
