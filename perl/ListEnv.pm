@@ -18,11 +18,6 @@ sub setup($) {
 
 sub list_names($) {
     my $self = shift;
-    my $head = $self->load_tmpl('head.tmpl', utf8 => 1);
-    $head->param(LANG => 'ja');
-    $head->param(CHARSET => 'UTF-8');
-    $head->param(TITLE => '選択');
-    my $output = $head->output;
     my @names = ();
     foreach my $key (keys(%ENV)) {
         my %tmp;
@@ -30,12 +25,11 @@ sub list_names($) {
         $tmp{value} = $ENV{$key};
         push(@names, \%tmp);
     }
-    my $table = $self->load_tmpl('list_names.tmpl', utf8 => 1);
-    $table->param(NAMES => \@names);
-    $output .= $table->output;
-    my $foot = $self->load_tmpl('foot.tmpl', utf8 => 1);
-    $output .= $foot->output;
-    return $output;
+    my $template = $self->load_tmpl('list_names.tmpl', utf8 => 1);
+    $template->param(LANG => 'ja');
+    $template->param(TITLE => '選択');
+    $template->param(NAMES => \@names);
+    return $template->output;
 }
 
 1;
