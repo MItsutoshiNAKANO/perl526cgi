@@ -1,0 +1,33 @@
+<form method="post">
+    <button>Submit</button>
+    <table>
+        <caption>Names</caption>
+        <colgroup>
+            <col class="check">
+            <col class="name">
+            <col class="value">
+        </colgroup>
+        <thead>
+            <tr>
+                <th>check</th>
+                <th>name</th>
+                <th>value</th>
+            </tr>
+        </thead>
+        <tbody>
+            <TMPL_LOOP NAME="NAMES">
+                <tr id="<TMPL_VAR NAME=NAME>">
+                    <td>
+                        <input name="check" type="radio" value="<TMPL_VAR NAME=NAME>">
+                    </td>
+                    <td>
+                        <TMPL_VAR NAME="NAME">
+                    </td>
+                    <td>
+                        <TMPL_VAR NAME="VALUE">
+                    </td>
+                </tr>
+            </TMPL_LOOP>
+        </tbody>
+    </table>
+</form>

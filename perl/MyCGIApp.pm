@@ -23,7 +23,16 @@ sub list_names($) {
     $head->param(CHARSET => 'UTF-8');
     $head->param(TITLE => '選択');
     my $output = $head->output;
-
+    my @names = ();
+    foreach my $key (keys(%ENV)) {
+        my %tmp;
+        $tmp{name} = $key;
+        $tmp{value} = $ENV{$key};
+        push(@names, \%tmp);
+    }
+    my $table = $self->load_tmpl('list_names.tmpl', utf8 => 1);
+    $table->param(NAMES => \@names);
+    $output .= $table->output;
     my $foot = $self->load_tmpl('foot.tmpl', utf8 => 1);
     $output .= $foot->output;
     return $output;
