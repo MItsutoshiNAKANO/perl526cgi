@@ -6,7 +6,7 @@ use warnings;
 use utf8;
 use File::Basename;
 use lib '/var/www/perl';
-use ListEnv;
+use MyCgiApp;
 
-my $webapp = ListEnv->new(TMPL_PATH => dirname($0) . '/../templates');
+my $webapp = MyCgiApp->new(TMPL_PATH => dirname($0) . '/../templates');
 $webapp->run();

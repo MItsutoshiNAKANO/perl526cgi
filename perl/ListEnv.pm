@@ -1,4 +1,4 @@
-package MyCGIApp;
+package ListEnv;
 
 use v5.26;
 use strict;
@@ -42,7 +42,7 @@ __END__
 
 =head1 NAME
 
-MyCGIApp - My CGI
+ListEnv - List Environment.
 
 =head1 SEE ALSO
 

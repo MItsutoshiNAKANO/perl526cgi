@@ -11,11 +11,18 @@ $script = <<-SCRIPT
   # @see https://www.postgresql.org/download/linux/redhat/
   sudo dnf -y install postgresql postgresql-server-devel postgresql-contrib postgresql-upgrade-devel perl-DBD-Pg perl-pgsql_perl5
   
-  echo yes | sudo cpan 'CGI::Application::Plugin::Session'
+  echo yes | sudo cpan 'CGI::Application::Plugin::Authentication'
+  sudo cpan 'CGI::Application::Plugin::Session'
+  sudo cpan 'CGI::Session::Auth'
+  sudo cpan 'CGI::Auth::Basic'
   sudo rm -rf /var/www
   sudo ln -s /vagrant /var/www
   sudo install -b -m 644 -o root -g root /vagrant/root/etc/selinux/config /etc/selinux
   sudo setenforce Permissive
+
+  sudo sudo -u postgres initdb -D /var/lib/pgsql/data
+  sudo systemctl enable postgresql.service
+  sudo systemctl start postgresql.service
   sudo systemctl enable httpd.service
   sudo systemctl start httpd.service
 SCRIPT
