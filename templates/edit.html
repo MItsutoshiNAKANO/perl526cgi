@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <title>編集</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="/css/edit.css" rel="stylesheet">
+        <script src="/node_modules/jquery/dist/jquery.min.js"></script>
+        <script src="/js/edit.js"></script>
+    </head>
+    <body>
+        <main>
+            <h1 class="h1">編集: <TMPL_VAR NAME="AFFILIATION"></h1>
+            <TMPL_LOOP NAME="ERRORS">
+                <p><strong><TMPL_VAR NAME="MESSAGE"></strong></p>
+            </TMPL_LOOP>
+            <strong></strong>
+            <form id="form" method="post">
+                <table>
+                    <colgroup>
+                        <col class="label">
+                        <col class="value">
+                    </colgroup>
+                    <tbody>
+                        <tr>
+                            <th class="label"><label for="worker">名前</label></th>
+                            <td class="value">
+                                <input name="worker" value="<TMPL_VAR NAME=WORKER>">
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="label">
+                                <label for="kana">カタカナ</label>
+                            </th>
+                            <td class="value">
+                                <input name="kana" value="<TMPL_VAR NAME=KANA>">
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="label">
+                                <label for="phone">電話</label>
+                            </th>
+                            <td class="value">
+                                <input name="phone" value="<TMPL_VAR NAME=PHONE>">
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <input name="account_id" type="hidden" value="<TMPL_VAR NAME=AFFILIATION>">
+                <input name="number" type="hidden" value="<TMPL_VAR NAME=NUMBER>">
+                <button name="rm" value="<TMPL_VAR NAME=NEXT_ACTION>">確定</button>
+                <button name="rm" value="auth_workers">戻る</button>
+            </form>
+        </main>
+    </body>
+</html>

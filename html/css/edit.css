@@ -1,0 +1,8 @@
+/** */
+.label {
+    width: 4em;
+}
+
+.value {
+    width: calc(100% - 4em)
+}
