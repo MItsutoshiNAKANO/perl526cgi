@@ -13,6 +13,7 @@ $script = <<-SCRIPT
   dnf -y install postgresql postgresql-server-devel postgresql-contrib postgresql-upgrade-devel perl-DBD-Pg perl-pgsql_perl5
   
   echo yes | cpan 'CGI::Application::Plugin::Authentication'
+  cpan 'CGI::Application::Plugin::Session'
   rm -rf /var/www
   ln -s /vagrant /var/www
   install -b -m 644 -o root -g root /vagrant/root/etc/selinux/config /etc/selinux
