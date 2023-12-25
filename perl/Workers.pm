@@ -11,17 +11,15 @@ Workers
 =cut
 package Workers;
 
-use base qw(CGI::Application);
 use 5.26.0;
 use strict;
 use warnings;
+use Carp qw(cluck);
 use utf8;
+use base qw(CGI::Application);
 use DBI;
 use CGI::Application::Plugin::Session;
 use CGI::Application::Plugin::Authentication;
-
-binmode STDIN, ':utf8';
-binmode STDOUT, ':utf8';
 
 __PACKAGE__->authen->config(
       DRIVER => [ 'Generic', { user1 => '123' } ],
@@ -58,6 +56,9 @@ sub setup($) {
     $self->run_modes([
         'auth_workers', 'auth_add', 'auth_do_add',
         'auth_update', 'auth_do_update', 'auth_delete']);
+    binmode STDIN, ':utf8';
+    binmode STDOUT, ':utf8';
+    binmode STDERR, ':utf8';
     $self->header_add(-type => 'text/html; charset=UTF-8')
 }
 
@@ -235,11 +236,11 @@ sub auth_do_add($) {
     my $self = shift;
     my %regulated = $self->regulate;
     my $worker = $regulated{worker};
-    utf8::encode($worker);
+    # utf8::encode($worker);
     my $kana = $regulated{kana};
-    utf8::encode($kana);
+    # utf8::encode($kana);
     my $phone = $regulated{phone};
-    utf8::encode($phone);
+    # utf8::encode($phone);
     if (my @errors = $self->validate(%regulated)) {
         return $self->edit_worker({
             errors => \@errors, next_action => 'auth_do_add',
