@@ -55,7 +55,8 @@ sub setup($) {
     $self->mode_param('rm');
     $self->run_modes([
         'auth_workers', 'auth_add', 'auth_do_add',
-        'auth_update', 'auth_do_update', 'auth_delete']);
+        'auth_update', 'auth_do_update', 'auth_delete',
+        'auth_dump', 'auth_self']);
     binmode STDIN, ':utf8';
     binmode STDOUT, ':utf8';
     binmode STDERR, ':utf8';
@@ -331,6 +332,29 @@ sub auth_do_update($) {
         $worker, $kana, $phone, $username, $number, $username
     );
     return $self->list_workers([]);
+}
+
+=pod
+
+=head2 $html_string = $self->auth_dump # dump to debug.
+
+=cut
+sub auth_dump($) {
+    my $self = shift;
+    return $self->dump_html();
+}
+
+sub auth_self($) {
+    my $self = shift;
+    my $template = $self->load_tmpl('dump.html', utf8 => 1);
+    my @rows = ();
+    foreach my $i (%{$self}) {
+        my %tmp;
+        $tmp{ROW} = $i;
+        push(@rows, \%tmp);
+    }
+    $template->param(ROWS => \@rows);
+    return $template->output;
 }
 
 1;
