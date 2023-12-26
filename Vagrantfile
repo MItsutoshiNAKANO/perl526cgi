@@ -14,16 +14,17 @@ $script = <<-SCRIPT
   
   echo yes | cpan 'CGI::Application::Plugin::Authentication'
   cpan 'CGI::Application::Plugin::Session'
+  install -b -m 644 -o root -g root /vagrant/root/usr/lib/systemd/system/httpd.service /usr/lib/systemd/system/  
+  install -b -m 644 -o root -g root /vagrant/root/etc/selinux/config /etc/selinux/
+  setenforce Permissive
   rm -rf /var/www
   ln -s /vagrant /var/www
-  install -b -m 644 -o root -g root /vagrant/root/etc/selinux/config /etc/selinux
-  setenforce Permissive
 
   sudo -u postgres initdb -D /var/lib/pgsql/data
   systemctl enable postgresql.service
   systemctl start postgresql.service
-  /vagrant/0010-create_databases.sh
-  sudo -u vagrant /vagrant/0020-create_tables.sh
+  /vagrant/scrips/0010-create_databases.sh
+  sudo -u vagrant /vagrant/scripts/0020-create_tables.sh
   systemctl enable httpd.service
   systemctl start httpd.service
 SCRIPT
