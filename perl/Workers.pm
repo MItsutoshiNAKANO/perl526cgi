@@ -11,7 +11,7 @@ Workers
 =cut
 package Workers;
 
-use 5.26.0;
+use 5.26.3;
 use strict;
 use warnings;
 use Carp qw(cluck);
@@ -20,6 +20,7 @@ use base qw(CGI::Application);
 use DBI;
 use CGI::Application::Plugin::Session;
 use CGI::Application::Plugin::Authentication;
+use Scalar::Util qw(reftype); 
 
 __PACKAGE__->authen->config(
       DRIVER => [ 'Generic', { user1 => '123' } ],
@@ -56,7 +57,7 @@ sub setup($) {
     $self->run_modes([
         'auth_workers', 'auth_add', 'auth_do_add',
         'auth_update', 'auth_do_update', 'auth_delete',
-        'auth_dump', 'auth_self']);
+        'auth_dump', 'auth_self', 'dump_html']);
     binmode STDIN, ':utf8';
     binmode STDOUT, ':utf8';
     binmode STDERR, ':utf8';
@@ -346,15 +347,21 @@ sub auth_dump($) {
 
 sub auth_self($) {
     my $self = shift;
-    my $template = $self->load_tmpl('dump.html', utf8 => 1);
-    my @rows = ();
-    foreach my $i (%{$self}) {
-        my %tmp;
-        $tmp{ROW} = $i;
-        push(@rows, \%tmp);
+    my @results;
+    foreach my $key (keys(%{$self})) {
+        my $value = $self->{$key};
+        my $type = reftype $value;
+        if ($type eq 'SCALAR') {
+            push(@results, '<p>', $key, '=', '\\', $$value, '</p>');
+        } elsif ($type eq 'ARRAY') {
+            push(@results, '<p>', $key, '=', '[', @$value ,']</p>');
+        } elsif ($type eq 'HASH') {
+            push(@results, '<p>', $key, '=', '{', %$value, '}</p>');
+        } else {
+            push(@results, '<p>', $key, '=', $value, '</p>');
+        }
     }
-    $template->param(ROWS => \@rows);
-    return $template->output;
+    return "@results"
 }
 
 1;
