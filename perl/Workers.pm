@@ -61,7 +61,7 @@ sub setup($) {
     binmode STDIN, ':utf8';
     binmode STDOUT, ':utf8';
     binmode STDERR, ':utf8';
-    $self->header_add(-type => 'text/html; charset=UTF-8')
+    $self->header_props(-charset => 'UTF-8');
 }
 
 =pod
