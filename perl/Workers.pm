@@ -259,6 +259,33 @@ sub validate($%) {
 
 =pod
 
+=head2 my @errors = $self->duplicate($account_id, %regulated);
+
+Tell errors if it is duplicated.
+
+=cut
+sub duplicate($%) {
+    my $self = shift;
+    my (%regulated) = @_;
+    my $worker = $regulated{worker};
+    my $kana = $regulated{kana};
+    my $phone = $regulated{phone};
+    my $username = $self->authen->username;
+    my @errors = ();
+    my $dbh = __PACKAGE__->connect_db;
+    my $sth = $dbh->prepare_cached('
+    SELECT worker_number FROM workers
+    WHERE account_id = ? AND worker_name = ?
+    AND worker_katakana = ? AND phone = ?');
+    $sth->execute($username, $worker, $kana, $phone);
+     if ($sth->fetchrow_arrayref) {
+        push(@errors, '既に登録済みです。');
+     }
+     return @errors;
+}
+
+=pod
+
 =head2 $html_string = $self->auth_do_add # Add a worker.
 
 =cut
@@ -269,6 +296,12 @@ sub auth_do_add($) {
     my $kana = $regulated{kana};
     my $phone = $regulated{phone};
     if (my @errors = $self->validate(%regulated)) {
+        return $self->edit_worker({
+            errors => \@errors, next_action => 'auth_do_add',
+            worker => $worker, kana => $kana, phone => $phone
+        });
+    }
+    if (my @errors = $self->duplicate(%regulated)) {
         return $self->edit_worker({
             errors => \@errors, next_action => 'auth_do_add',
             worker => $worker, kana => $kana, phone => $phone
