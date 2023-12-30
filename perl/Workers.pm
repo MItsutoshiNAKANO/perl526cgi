@@ -56,12 +56,38 @@ sub setup($) {
     $self->mode_param('rm');
     $self->run_modes([
         'auth_workers', 'auth_add', 'auth_do_add',
-        'auth_update', 'auth_do_update', 'auth_delete',
+        'auth_update', 'auth_do_update', 'auth_delete', 'auth_reflect',
         'auth_dump', 'auth_self', 'dump_html']);
     binmode STDIN, ':utf8';
     binmode STDOUT, ':utf8';
     binmode STDERR, ':utf8';
     $self->header_props(-charset => 'UTF-8');
+}
+
+=pod
+
+=head2 $self->auth_reflect
+
+=cut
+sub auth_reflect($) {
+    my $self = shift;
+    my $q = $self->query;
+    my $worker_number = $q->param('check');
+    unless ($worker_number) {
+        return $self->list_workers(['対象を選んでください。']);
+    }
+    my $username = $self->authen->username;
+    my $dbh = __PACKAGE__->connect_db;
+    my $sth = $dbh->prepare_cached('
+    SELECT worker_number, worker_name, phone
+    FROM workers WHERE account_id = ? AND worker_number = ?');
+    my $rv = $sth->execute($username, $worker_number);
+    my $row = $sth->fetchrow_arrayref;
+    my ($worker_name, $phone) = ($row->[1], $row->[2]);
+    utf8::decode($worker_name);
+    utf8::decode($phone);
+    $self->header_type('redirect');
+    $self->header_props(-url=>  "driver.cgi?name=$worker_name&phone=$phone");
 }
 
 =pod
@@ -84,7 +110,7 @@ sub list_workers($$) {
     SELECT worker_number, worker_name, worker_katakana, phone
     FROM workers
     WHERE account_id = ?
-    ORDER BY worker_katakana');
+    ORDER BY worker_katakana, worker_number');
     my $rv = $sth->execute($username);
     my @workers = ();
     while (my $row = $sth->fetchrow_arrayref) {
@@ -93,6 +119,8 @@ sub list_workers($$) {
         utf8::decode($tmp{NUMBER});
         $tmp{NAME} = $row->[1];
         utf8::decode($tmp{NAME});
+        $tmp{KATAKANA} = $row->[2];
+        utf8::decode($tmp{KATAKANA});
         $tmp{PHONE} = $row->[3];
         utf8::decode($tmp{PHONE});
         push(@workers, \%tmp);

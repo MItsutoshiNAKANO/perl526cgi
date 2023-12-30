@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="ja">
+    <head>
+        <meta charset="UTF-8">
+        <title>一覧</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link href="/css/workers.css" rel="stylesheet">
+        <script src="/node_modules/jquery/dist/jquery.min.js"></script>
+    </head>
+    <body>
+        <main>
+            <h1 class="h1">ID: <TMPL_VAR NAME="AFFILIATION"></h1>
+            <TMPL_LOOP NAME="ERRORS">
+                <p><strong><TMPL_VAR NAME="MESSAGE"></strong></p>
+            </TMPL_LOOP>
+            <form id="form" method="post">
+                <button id="select" type="button">
+                    選択
+                </button>
+                <button type="submit">再読込</button>
+                <label>
+                    名前
+                    <input name="name" value="<TMPL_VAR NAME=WORKER>">
+                </label>
+                <label>
+                    電話
+                    <input name="phone" value="<TMPL_VAR NAME=PHONE>">
+                </label>
+            </form>
+            <form id="workers" action="workers.cgi" method="post">
+                <input type="hidden" name="rm" value="auth_workers">
+            </form>
+            <script src="/js/driver.js"></script>
+        </main>
+    </body>
+</html>

@@ -1,3 +1,4 @@
 table { width: 100%; }
-.name { width: calc(100% - 12em); }
+.name { width: calc((100% - 12em) / 2); }
+.kana { width: calc((100% - 12em) / 2); }
 .phone { width: 12em; }
