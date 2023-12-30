@@ -266,11 +266,8 @@ sub auth_do_add($) {
     my $self = shift;
     my %regulated = $self->regulate;
     my $worker = $regulated{worker};
-    # utf8::encode($worker);
     my $kana = $regulated{kana};
-    # utf8::encode($kana);
     my $phone = $regulated{phone};
-    # utf8::encode($phone);
     if (my @errors = $self->validate(%regulated)) {
         return $self->edit_worker({
             errors => \@errors, next_action => 'auth_do_add',
