@@ -1,14 +1,3 @@
-=pod
-
-=encoding utf8
-
-=head1 NAME
-
-Driver
-
-=head1 MEMBERS
-
-=cut
 package Driver;
 
 use 5.26.3;
@@ -21,6 +10,16 @@ use CGI::Application::Plugin::Session;
 use CGI::Application::Plugin::Authentication;
 use Scalar::Util qw(reftype); 
 
+=encoding utf8
+
+=head1 NAME
+
+Driver
+
+=head1 MEMBERS
+
+=cut
+
 __PACKAGE__->authen->config(
       DRIVER => [ 'Generic', { user1 => '123' } ],
       STORE => 'Session'
@@ -28,11 +27,10 @@ __PACKAGE__->authen->config(
 
 __PACKAGE__->authen->protected_runmodes(qr/^auth_/);
 
-=pod
-
-=head2 $self->setup()
+=head2 $self->setup; # Setup.
 
 =cut
+
 sub setup($) {
     my $self = shift;
     $self->start_mode('auth_driver');
@@ -44,6 +42,10 @@ sub setup($) {
     binmode STDERR, ':utf8';
     $self->header_props(-charset => 'UTF-8');
 }
+
+=head2 $html_string = $self->auth_driver; # Print driver page.
+
+=cut
 
 sub auth_driver($) {
     my $self = shift;
@@ -58,15 +60,18 @@ sub auth_driver($) {
     return $template->output;
 }
 
-=pod
-
-=head2 $html_string = $self->auth_dump # dump to debug.
+=head2 $html_string = $self->auth_dump; # Dump to debug.
 
 =cut
+
 sub auth_dump($) {
     my $self = shift;
     return $self->dump_html;
 }
+
+=head2 $html_string = $self->auth_self; # Dump to debug.
+
+=cut
 
 sub auth_self($) {
     my $self = shift;
@@ -84,7 +89,7 @@ sub auth_self($) {
             push(@results, '<p>', $key, '=', $value, '</p>');
         }
     }
-    return "@results"
+    return "@results";
 }
 
 1;

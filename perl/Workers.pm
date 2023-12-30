@@ -1,14 +1,3 @@
-=pod
-
-=encoding utf8
-
-=head1 NAME
-
-Workers
-
-=head1 MEMBERS
-
-=cut
 package Workers;
 
 use 5.26.3;
@@ -22,6 +11,25 @@ use CGI::Application::Plugin::Session;
 use CGI::Application::Plugin::Authentication;
 use Scalar::Util qw(reftype); 
 
+=encoding utf8
+
+=head1 NAME
+
+Workers - List & Edit workers.
+
+=head1 SYNOPSIS
+
+  use File::Basename;
+  use lib '/var/www/perl';
+  use Workers;
+
+  my $webapp = Workers->new(TMPL_PATH => dirname($0) . '/../templates');
+  $webapp->run();
+
+=head1 DESCRIPTION
+
+=cut
+
 __PACKAGE__->authen->config(
       DRIVER => [ 'Generic', { user1 => '123' } ],
       STORE => 'Session'
@@ -31,11 +39,10 @@ __PACKAGE__->authen->protected_runmodes(qr/^auth_/);
 
 our $our_dbh;
 
-=pod
-
-=head2 my $dbh = __PACKAGE__->connect_db 
+=head2 my $dbh = __PACKAGE__->connect_db; # Connect to DB.
 
 =cut
+
 sub connect_db() {
     if ($our_dbh) { return $our_dbh }
     my $dbname = $ENV{PGDATABASE} || 'vagrant';
@@ -45,11 +52,18 @@ sub connect_db() {
     return $our_dbh = DBI->connect($connection_string, $dbuser, $dbpassword);
 }
 
-=pod
+=head2 $self->setup; # Setup this class.
 
-=head2 $self->setup()
+=head3 See Also
+
+=over 4
+
+=item * CGI::Application
+
+=back
 
 =cut
+
 sub setup($) {
     my $self = shift;
     $self->start_mode('auth_workers');
@@ -64,11 +78,10 @@ sub setup($) {
     $self->header_props(-charset => 'UTF-8');
 }
 
-=pod
-
-=head2 $self->auth_reflect
+=head2 $self->auth_reflect; # Jump & refrect name.
 
 =cut
+
 sub auth_reflect($) {
     my $self = shift;
     my $q = $self->query;
@@ -87,14 +100,13 @@ sub auth_reflect($) {
     utf8::decode($worker_name);
     utf8::decode($phone);
     $self->header_type('redirect');
-    $self->header_props(-url=>  "driver.cgi?name=$worker_name&phone=$phone");
+    $self->header_props(-url => "driver.cgi?name=$worker_name&phone=$phone");
 }
 
-=pod
-
-=head2 my $html_string = $self->list_workers(\@error_messages)
+=head2 $html_string = $self->list_workers(\@error_messages); # List.
 
 =cut
+
 sub list_workers($$) {
     my $self = shift;
     my ($messages) = @_;
@@ -132,21 +144,19 @@ sub list_workers($$) {
     return $template->output;
 }
 
-=pod
-
-=head2 my $html_string = $self->auth_workers # list workers
+=head2 $html_string = $self->auth_workers; # List workers
 
 =cut
+
 sub auth_workers($) {
     my $self = shift;
     return $self->list_workers([]);
 }
 
-=pod
-
-=head2 my $html_string = $self->auth_delete # delete a worker
+=head2 $html_string = $self->auth_delete; # Delete a worker
 
 =cut
+
 sub auth_delete($) {
     my $self = shift;
     my $q = $self->query;
@@ -162,11 +172,10 @@ sub auth_delete($) {
     return $self->list_workers([]);
 }
 
-=pod
-
-=head2 my $edit_screen_html = $self->edit_worker($args)
+=head2 $edit_screen_html = $self->edit_worker($args); # Show the editor.
 
 =cut
+
 sub edit_worker($$) {
     my $self = shift;
     my ($args) = @_;
@@ -182,9 +191,6 @@ sub edit_worker($$) {
         $tmp{MESSAGE} = $message;
         push(@errors, \%tmp); 
     }
-    # utf8::encode($args->{worker});
-    # utf8::encode($args->{kana});
-    # utf8::encode($args->{phone});
     $template->param(ERRORS => \@errors);
     $template->param(NUMBER => $args->{number} || '');
     $template->param(WORKER => $args->{worker} || '');
@@ -193,22 +199,20 @@ sub edit_worker($$) {
     return $template->output;
 }
 
-=pod
-
-=head2 my $html_string = $self->auth_add # Show the screen to add a worker.
+=head2 $html_string = $self->auth_add; # Show the adding screen.
 
 =cut
+
 sub auth_add($) {
     my $self = shift;
     my $username = $self->authen->username;
     return $self->edit_worker({ next_action => 'auth_do_add' });
 }
 
-=pod
-
-=head2 my %regulated = $self->regulate # regulate charactors.
+=head2 my %regulated = $self->regulate; # Regulate charactors.
 
 =cut
+
 sub regulate($) {
     my $self = shift;
     my $q = $self->query;
@@ -233,11 +237,10 @@ sub regulate($) {
     return (worker => $worker, kana => $kana, phone => $phone);
 }
 
-=pod
-
-=head2 my @errors = $self->validate(%regulated) # Validate charactors.
+=head2 my @errors = $self->validate(%regulated); # Validate charactors.
 
 =cut
+
 sub validate($%) {
     my $self = shift;
     my (%regulated) = @_;
@@ -257,13 +260,12 @@ sub validate($%) {
     return @errors;
 }
 
-=pod
-
 =head2 my @errors = $self->duplicate($account_id, %regulated);
 
 Tell errors if it is duplicated.
 
 =cut
+
 sub duplicate($%) {
     my $self = shift;
     my (%regulated) = @_;
@@ -284,11 +286,10 @@ sub duplicate($%) {
      return @errors;
 }
 
-=pod
-
-=head2 $html_string = $self->auth_do_add # Add a worker.
+=head2 $html_string = $self->auth_do_add; # Add a worker.
 
 =cut
+
 sub auth_do_add($) {
     my $self = shift;
     my %regulated = $self->regulate;
@@ -319,19 +320,17 @@ sub auth_do_add($) {
         ? AS account_id, ? AS affiliation, ? AS abbreviation_for_affiliation,
         ? AS worker_name, ? AS worker_katakana, ? AS phone,
         ? AS creator, ? AS updater
-    FROM workers WHERE account_id = ?'
-    );
+    FROM workers WHERE account_id = ?');
     my $rv = $sth->execute(
         $username, $username, $username, $worker, $kana, $phone,
         $username, $username, $username);
     return $self->list_workers;
 }
 
-=pod
-
-=head2 my $html_string = $self->auth_update # Show the screen to edit a worker.
+=head2 $html_string = $self->auth_update; # Show the modify screen.
 
 =cut
+
 sub auth_update($) {
     my $self = shift;
     my $q = $self->query;
@@ -356,11 +355,10 @@ sub auth_update($) {
     });
 }
 
-=pod
-
-=head2 my $html_string = $self->auth_do_update # Update a worker.
+=head2 $html_string = $self->auth_do_update; # Update a worker.
 
 =cut
+
 sub auth_do_update($) {
     my $self = shift;
     my %regulated = $self->regulate;
@@ -393,15 +391,18 @@ sub auth_do_update($) {
     return $self->list_workers([]);
 }
 
-=pod
-
-=head2 $html_string = $self->auth_dump # dump to debug.
+=head2 $html_string = $self->auth_dump; # Dump to debug.
 
 =cut
+
 sub auth_dump($) {
     my $self = shift;
     return $self->dump_html();
 }
+
+=head2 $html_string = $self->auth_self; # Dump to debug.
+
+=cut
 
 sub auth_self($) {
     my $self = shift;
@@ -425,3 +426,13 @@ sub auth_self($) {
 1;
 
 __END__
+
+=head1 SEE ALSO
+
+=over 4
+
+=item * CGI::Application::Plugin::Authentication
+
+=item * CGI::Application
+
+=back
