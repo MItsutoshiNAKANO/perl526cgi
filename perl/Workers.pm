@@ -118,6 +118,7 @@ sub teardown($) {
 sub prepare($$) {
     my ($self, $statement) = @_;
     my ($dbh, $log) = ($self->{dbh}, $self->{log});
+    $statement =~ s/\s+/ /g;
     $log->info($statement);
     my $sth = $dbh->prepare($statement)
     or $log->error(errinf($dbh));
