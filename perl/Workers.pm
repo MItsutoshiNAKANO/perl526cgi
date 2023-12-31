@@ -87,13 +87,14 @@ sub setup($) {
     $self->header_props(-charset => 'UTF-8');
 }
 
-=head2 $self->tear_down # Tear down.
+=head2 $self->teardown # Tear down.
 
 =cut
 
-sub tear_down($) {
+sub teardown($) {
     my $self = shift;
     $self->{dbh}->commit;
+    $self->{dbh}->disconnect;
 }
 
 =head2 my $sth = $self->prepare($statement); # Prepare a statement.
@@ -377,13 +378,14 @@ sub auth_update($) {
         FROM workers WHERE account_id = ? AND worker_number = ?
     }) or return $self->list_workers([
         'failed to prepare selecting',
-        $self->{dbh}->err, $self->{dbh}->errstr, $self->{dbh}->status
+        $self->{dbh}->err, $self->{dbh}->errstr, $self->{dbh}->state
     ]);
     my $rv = $sth->execute($username, $worker_number)
     or return $self->list_workers([
-        'failed to SELECT', $sth->err, $sth->errstr, $sth->status]);
+        'failed to SELECT', $sth->err, $sth->errstr, $sth->state
+    ]);
     my $row = $sth->fetchrow_arrayref or return $self->list_workers([
-        'failed to fetch', $sth->err, $sth->errstr, $sth->states
+        'failed to fetch', $sth->err, $sth->errstr, $sth->state
     ]);
     my ($worker_name, $kana, $phone) = ($row->[1], $row->[2], $row->[3]);
     utf8::decode($worker_name);
@@ -424,12 +426,12 @@ sub auth_do_update($) {
         WHERE worker_number = ? AND account_id = ?
     }) or return $self->list_workers([
         'failed to prepare updating',
-        $self->{dbh}->err, $self->{dbh}->errstr, $self->{dbh}->status
+        $self->{dbh}->err, $self->{dbh}->errstr, $self->{dbh}->state
     ]);
     my $rv = $sth->execute(
         $worker, $kana, $phone, $username, $number, $username
     ) or return $self->list_workers([
-        'failed to UPDATE', $sth->err, $sth->errstr, $sth->status
+        'failed to UPDATE', $sth->err, $sth->errstr, $sth->state
     ]);
     return $self->list_workers;
 }
