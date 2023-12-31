@@ -46,7 +46,7 @@ sub _get_default_datasource() {
     return "dbi:Pg:dbname=$dbname";
 }
 
-=head2 $self->connect_db; # Connect to DB.
+=head2 $self->_connect; # Connect to DB.
 
 =cut
 
@@ -56,9 +56,18 @@ sub _connect($$$$$) {
     my $dbuser = $user || $ENV{PGUSER} || 'apache';
     my $dbpassword = $pass || $ENV{PGPASSWORD} || 'vagrant';
     my $db_attr = $attr || { AutoCommit => 0 };
-    $self->{dbh} = DBI->connect(
+    return $self->{dbh} = DBI->connect(
         $db_data_source, $dbuser, $dbpassword, $db_attr
     );
+}
+
+=head2 my ($err, $errstr, $state) = errinf($db_handle); # Get error information.
+
+=cut
+
+sub errinf($) {
+    my $h = shift;
+    return ($h->err, $h->errstr, $h->state);
 }
 
 =head2 $self->setup; # Setup this class.
@@ -88,7 +97,7 @@ sub setup($) {
     binmode STDIN, ':utf8';
     binmode STDOUT, ':utf8';
     binmode STDERR, ':utf8';
-    $self->_connect;
+    $self->_connect or $self->{log}->error(errinf(qw(DBI)));
     $self->header_props(-charset => 'UTF-8');
 }
 
@@ -108,8 +117,11 @@ sub teardown($) {
 
 sub prepare($$) {
     my ($self, $statement) = @_;
-    $self->{log}->info($statement);
-    return $self->{dbh}->prepare($statement);
+    my ($dbh, $log) = ($self->{dbh}, $self->{log});
+    $log->info($statement);
+    my $sth = $dbh->prepare($statement)
+    or $log->error(errinf($dbh));
+    return $sth;
 }
 
 =head2 my $rv = $self->execute($sth, @params);
@@ -119,7 +131,9 @@ sub prepare($$) {
 sub execute($$@) {
     my ($self, $sth, @params) = @_;
     $self->{log}->info(@params);
-    return $sth->execute(@params);
+    my $rv = $sth->execute(@params)
+    or $self->{log}->error(errinf($sth));
+    return $rv;
 }
 
 =head2 $self->auth_reflect; # Jump & refrect name.
@@ -138,7 +152,7 @@ sub auth_reflect($) {
         SELECT worker_number, worker_name, phone
         FROM workers WHERE account_id = ? AND worker_number = ?
     });
-    my $rv = $sth->execute($username, $worker_number);
+    my $rv = $self->execute($sth, $username, $worker_number);
     my $row = $sth->fetchrow_arrayref;
     my ($worker_name, $phone) = ($row->[1], $row->[2]);
     utf8::decode($worker_name);
@@ -165,7 +179,7 @@ sub list_workers($$) {
         FROM workers WHERE account_id = ?
         ORDER BY worker_katakana, worker_number
     });
-    my $rv = $sth->execute($username);
+    my $rv = $self->execute($sth, $username);
     my @workers = ();
     while (my $row = $sth->fetchrow_arrayref) {
         my %tmp;
@@ -192,7 +206,7 @@ sub list_workers($$) {
 
 sub auth_workers($) {
     my $self = shift;
-    return $self->list_workers([]);
+    return $self->list_workers;
 }
 
 =head2 $html_string = $self->auth_delete; # Delete a worker
@@ -211,12 +225,10 @@ sub auth_delete($) {
     my $sth = $self->prepare(q{
         DELETE FROM workers WHERE account_id = ? AND worker_number = ?
     }) or return $self->list_workers([
-        'failed to prepare deleting',
-        $self->{dbh}->err, $self->{dbh}->errstr, $self->{dbh}->state
+        'failed to prepare deleting', errinf($self->{dbh})
     ]);
-    my $rv = $sth->execute($username, $worker) or return $self->list_workers([
-        'failed to DELETE', $sth->err, $sth->errstr, $sth->state
-    ]);
+    my $rv = $self->execute($sth, $username, $worker)
+    or return $self->list_workers(['failed to DELETE', errinf($sth)]);
     return $self->list_workers;
 }
 
@@ -322,7 +334,7 @@ sub duplicate($$) {
         WHERE account_id = ? AND worker_name = ?
         AND worker_katakana = ? AND phone = ?
     });
-    $sth->execute($username, $worker, $kana, $phone);
+    $self->execute($sth, $username, $worker, $kana, $phone);
      if ($sth->fetchrow_arrayref) { push(@errors, '既に登録済みです。') }
      return [@errors];
 }
@@ -365,15 +377,12 @@ sub auth_do_add($) {
             ? AS creator, ? AS updater
         FROM workers WHERE account_id = ?
     }) or return $self->list_workers([
-        'failed to prepare inserting',
-        $self->{dbh}->err, $self->{dbh}->errstr, $self->{dbh}->state
+        'failed to prepare inserting', errinf($self->{dbh})
     ]);
-    my $rv = $sth->execute(
-        $username, $username, $username, $worker, $kana, $phone,
+    my $rv = $self->execute(
+        $sth, $username, $username, $username, $worker, $kana, $phone,
         $username, $username, $username
-    ) or return $self->list_workers([
-        'failed to INSERT', $sth->err, $sth->erstr, $sth->state
-    ]);
+    ) or return $self->list_workers(['failed to INSERT', errinf($sth)]);
     return $self->list_workers;
 }
 
@@ -393,15 +402,12 @@ sub auth_update($) {
         SELECT worker_number, worker_name, worker_katakana, phone
         FROM workers WHERE account_id = ? AND worker_number = ?
     }) or return $self->list_workers([
-        'failed to prepare selecting',
-        $self->{dbh}->err, $self->{dbh}->errstr, $self->{dbh}->state
+        'failed to prepare selecting', errinf($self->{dbh})
     ]);
-    my $rv = $sth->execute($username, $worker_number)
-    or return $self->list_workers([
-        'failed to SELECT', $sth->err, $sth->errstr, $sth->state
-    ]);
+    my $rv = $self->execute($sth, $username, $worker_number)
+    or return $self->list_workers(['failed to SELECT', errinf($sth)]);
     my $row = $sth->fetchrow_arrayref or return $self->list_workers([
-        'failed to fetch', $sth->err, $sth->errstr, $sth->state
+        'failed to fetch', errinf($sth)
     ]);
     my ($worker_name, $kana, $phone) = ($row->[1], $row->[2], $row->[3]);
     utf8::decode($worker_name);
@@ -441,14 +447,11 @@ sub auth_do_update($) {
             update_at = CURRENT_TIMESTAMP
         WHERE worker_number = ? AND account_id = ?
     }) or return $self->list_workers([
-        'failed to prepare updating',
-        $self->{dbh}->err, $self->{dbh}->errstr, $self->{dbh}->state
+        'failed to prepare updating', errinf($self->{dbh})
     ]);
-    my $rv = $sth->execute(
-        $worker, $kana, $phone, $username, $number, $username
-    ) or return $self->list_workers([
-        'failed to UPDATE', $sth->err, $sth->errstr, $sth->state
-    ]);
+    my $rv = $self->execute(
+        $sth, $worker, $kana, $phone, $username, $number, $username
+    ) or return $self->list_workers(['failed to UPDATE', errinf($sth)]);
     return $self->list_workers;
 }
 
