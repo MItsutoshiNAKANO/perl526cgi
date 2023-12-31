@@ -209,7 +209,7 @@ sub auth_add($) {
     return $self->edit_worker({ next_action => 'auth_do_add' });
 }
 
-=head2 my %regulated = $self->regulate; # Regulate charactors.
+=head2 my $regulated = $self->regulate; # Regulate charactors.
 
 =cut
 
@@ -234,19 +234,19 @@ sub regulate($) {
     $kana =~ tr/ｦｧｨｩｪｫｬｭｮｯ\ｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ\ﾞ\ﾟ/ヲァィゥェォャュョッーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン゛゜/;
     $kana =~ s/^ +//;
     $kana =~ s/ +$//;
-    return (worker => $worker, kana => $kana, phone => $phone);
+    return {worker => $worker, kana => $kana, phone => $phone};
 }
 
-=head2 my @errors = $self->validate(%regulated); # Validate charactors.
+=head2 my $errors = $self->validate(%regulated); # Validate charactors.
 
 =cut
 
-sub validate($%) {
+sub validate($$) {
     my $self = shift;
-    my (%regulated) = @_;
-    my $worker = $regulated{worker};
-    my $kana = $regulated{kana};
-    my $phone = $regulated{phone};
+    my ($regulated) = @_;
+    my $worker = $regulated->{worker};
+    my $kana = $regulated->{kana};
+    my $phone = $regulated->{phone};
     my @errors = ();
     unless ($worker and $kana and $phone) {
         push(@errors, '全て入力必須です。');
@@ -257,21 +257,21 @@ sub validate($%) {
     if ($phone =~ m/([^\d \-\(\)\+]+)/) {
         push(@errors, "電話番号欄の「$1」は不正な文字です。");
     }
-    return @errors;
+    return [@errors];
 }
 
-=head2 my @errors = $self->duplicate($account_id, %regulated);
+=head2 my $errors = $self->duplicate($account_id, %regulated);
 
 Tell errors if it is duplicated.
 
 =cut
 
-sub duplicate($%) {
+sub duplicate($$) {
     my $self = shift;
-    my (%regulated) = @_;
-    my $worker = $regulated{worker};
-    my $kana = $regulated{kana};
-    my $phone = $regulated{phone};
+    my ($regulated) = @_;
+    my $worker = $regulated->{worker};
+    my $kana = $regulated->{kana};
+    my $phone = $regulated->{phone};
     my $username = $self->authen->username;
     my @errors = ();
     my $dbh = __PACKAGE__->connect_db;
@@ -283,7 +283,7 @@ sub duplicate($%) {
      if ($sth->fetchrow_arrayref) {
         push(@errors, '既に登録済みです。');
      }
-     return @errors;
+     return [@errors];
 }
 
 =head2 $html_string = $self->auth_do_add; # Add a worker.
@@ -292,19 +292,21 @@ sub duplicate($%) {
 
 sub auth_do_add($) {
     my $self = shift;
-    my %regulated = $self->regulate;
-    my $worker = $regulated{worker};
-    my $kana = $regulated{kana};
-    my $phone = $regulated{phone};
-    if (my @errors = $self->validate(%regulated)) {
+    my $regulated = $self->regulate;
+    my $worker = $regulated->{worker};
+    my $kana = $regulated->{kana};
+    my $phone = $regulated->{phone};
+    my $validate_errors = $self->validate($regulated);
+    if (@$validate_errors) {
         return $self->edit_worker({
-            errors => \@errors, next_action => 'auth_do_add',
+            errors => $validate_errors, next_action => 'auth_do_add',
             worker => $worker, kana => $kana, phone => $phone
         });
     }
-    if (my @errors = $self->duplicate(%regulated)) {
+    my $duplicate_errors = $self->duplicate($regulated);
+    if (@$duplicate_errors) {
         return $self->edit_worker({
-            errors => \@errors, next_action => 'auth_do_add',
+            errors => $duplicate_errors, next_action => 'auth_do_add',
             worker => $worker, kana => $kana, phone => $phone
         });
     }
@@ -361,15 +363,16 @@ sub auth_update($) {
 
 sub auth_do_update($) {
     my $self = shift;
-    my %regulated = $self->regulate;
-    my $worker = $regulated{worker};
-    my $kana = $regulated{kana};
-    my $phone = $regulated{phone};
+    my $regulated = $self->regulate;
+    my $worker = $regulated->{worker};
+    my $kana = $regulated->{kana};
+    my $phone = $regulated->{phone};
     my $q = $self->query;
     my $number = $q->param('number');
-    if (my @errors = $self->validate(%regulated)) {
+    my $validate_errors = $self->validate($regulated);
+    if (@$validate_errors) {
         return $self->edit_worker({
-            errors => \@errors, next_action => 'auth_do_update',
+            errors => $validate_errors, next_action => 'auth_do_update',
             number => $number,
             worker => $worker, kana => $kana, phone => $phone,
         });
