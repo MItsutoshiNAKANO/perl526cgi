@@ -14,6 +14,7 @@ $script = <<-SCRIPT
   
   echo yes | cpan 'CGI::Application::Plugin::Authentication'
   cpan 'CGI::Application::Plugin::Session'
+  cpan 'Mojo::Log'
   install -b -m 644 -o root -g root /vagrant/root/usr/lib/systemd/system/httpd.service /usr/lib/systemd/system/  
   install -b -m 644 -o root -g root /vagrant/root/etc/selinux/config /etc/selinux/
   setenforce Permissive

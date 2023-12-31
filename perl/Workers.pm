@@ -5,10 +5,12 @@ use strict;
 use warnings;
 use utf8;
 use base qw(CGI::Application);
+use File::Basename;
 use DBI;
 use CGI::Application::Plugin::Session;
 use CGI::Application::Plugin::Authentication;
 use Scalar::Util qw(reftype); 
+use Mojo::Log;
 
 =encoding utf8
 
@@ -80,6 +82,9 @@ sub setup($) {
         'auth_update', 'auth_do_update', 'auth_delete', 'auth_reflect',
         'auth_dump', 'auth_self', 'dump_html'
     ]);
+    $self->{log} = Mojo::Log->new(
+        path => dirname($0) . '/../logs/workers.log', level => 'info'
+    );
     binmode STDIN, ':utf8';
     binmode STDOUT, ':utf8';
     binmode STDERR, ':utf8';
@@ -103,7 +108,18 @@ sub teardown($) {
 
 sub prepare($$) {
     my ($self, $statement) = @_;
+    $self->{log}->info($statement);
     return $self->{dbh}->prepare($statement);
+}
+
+=head2 my $rv = $self->execute($sth, @params);
+
+=cut
+
+sub execute($$@) {
+    my ($self, $sth, @params) = @_;
+    $self->{log}->info(@params);
+    return $sth->execute(@params);
 }
 
 =head2 $self->auth_reflect; # Jump & refrect name.
