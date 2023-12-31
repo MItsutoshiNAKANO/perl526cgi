@@ -3,7 +3,6 @@ package Workers;
 use 5.26.3;
 use strict;
 use warnings;
-use Carp qw(cluck);
 use utf8;
 use base qw(CGI::Application);
 use DBI;
@@ -109,8 +108,7 @@ sub auth_reflect($) {
 =cut
 
 sub list_workers($$) {
-    my $self = shift;
-    my ($messages) = @_;
+    my ($self, $messages) = @_;
     my @errors = ();
     foreach my $message (@$messages) {
         my %tmp;
@@ -186,8 +184,7 @@ sub auth_delete($) {
 =cut
 
 sub edit_worker($$) {
-    my $self = shift;
-    my ($args) = @_;
+    my ($self, $args) = @_;
     # warn $args;
     my $username = $self->authen->username;
     my $template = $self->load_tmpl('edit.html', utf8 => 1);
@@ -245,13 +242,12 @@ sub regulate($) {
     return {worker => $worker, kana => $kana, phone => $phone};
 }
 
-=head2 my $errors = $self->validate(%regulated); # Validate charactors.
+=head2 my $errors = $self->validate($regulated); # Validate charactors.
 
 =cut
 
 sub validate($$) {
-    my $self = shift;
-    my ($regulated) = @_;
+    my ($self, $regulated) = @_;
     my $worker = $regulated->{worker};
     my $kana = $regulated->{kana};
     my $phone = $regulated->{phone};
@@ -266,7 +262,7 @@ sub validate($$) {
     return [@errors];
 }
 
-=head2 my $errors = $self->duplicate($account_id, %regulated);
+=head2 my $errors = $self->duplicate($regulated);
 
 Tell errors if it is duplicated.
 
@@ -361,11 +357,11 @@ sub auth_update($) {
         SELECT worker_number, worker_name, worker_katakana, phone
         FROM workers WHERE account_id = ? AND worker_number = ?
     }) or return $self->list_workers([
-        'failed to prepare Selecting', $dbh->err, $dbh->errstr, $dbh->status
+        'failed to prepare selecting', $dbh->err, $dbh->errstr, $dbh->status
     ]);
     my $rv = $sth->execute($username, $worker_number)
     or return $self->list_workers([
-        'failed to select', $sth->err, $sth->errstr, $sth->status]);
+        'failed to SELECT', $sth->err, $sth->errstr, $sth->status]);
     my $row = $sth->fetchrow_arrayref or return $self->list_workers([
         'failed to fetch', $sth->err, $sth->errstr, $sth->states
     ]);
@@ -426,7 +422,7 @@ sub auth_do_update($) {
 
 sub auth_dump($) {
     my $self = shift;
-    return $self->dump_html();
+    return $self->dump_html;
 }
 
 =head2 $html_string = $self->auth_self; # Dump to debug.
