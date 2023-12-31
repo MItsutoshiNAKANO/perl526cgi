@@ -31,25 +31,24 @@ Workers - List & Edit workers.
 =cut
 
 __PACKAGE__->authen->config(
-      DRIVER => [ 'Generic', { user1 => '123' } ],
-      STORE => 'Session'
+      DRIVER => [ 'Generic', { user1 => '123' } ], STORE => 'Session'
 );
 
 __PACKAGE__->authen->protected_runmodes(qr/^auth_/);
 
-our $our_dbh;
+our $_our_dbh;
 
 =head2 my $dbh = __PACKAGE__->connect_db; # Connect to DB.
 
 =cut
 
 sub connect_db() {
-    if ($our_dbh) { return $our_dbh }
+    if ($_our_dbh) { return $_our_dbh }
     my $dbname = $ENV{PGDATABASE} || 'vagrant';
     my $connection_string = "dbi:Pg:dbname=$dbname";
     my $dbuser = $ENV{PGUSER} || 'apache';
     my $dbpassword = $ENV{PGPASSWORD} || 'vagrant';
-    return $our_dbh = DBI->connect($connection_string, $dbuser, $dbpassword);
+    return $_our_dbh = DBI->connect($connection_string, $dbuser, $dbpassword);
 }
 
 =head2 $self->setup; # Setup this class.
@@ -71,7 +70,8 @@ sub setup($) {
     $self->run_modes([
         'auth_workers', 'auth_add', 'auth_do_add',
         'auth_update', 'auth_do_update', 'auth_delete', 'auth_reflect',
-        'auth_dump', 'auth_self', 'dump_html']);
+        'auth_dump', 'auth_self', 'dump_html'
+    ]);
     binmode STDIN, ':utf8';
     binmode STDOUT, ':utf8';
     binmode STDERR, ':utf8';
@@ -91,9 +91,10 @@ sub auth_reflect($) {
     }
     my $username = $self->authen->username;
     my $dbh = __PACKAGE__->connect_db;
-    my $sth = $dbh->prepare_cached('
-    SELECT worker_number, worker_name, phone
-    FROM workers WHERE account_id = ? AND worker_number = ?');
+    my $sth = $dbh->prepare_cached(q{
+        SELECT worker_number, worker_name, phone
+        FROM workers WHERE account_id = ? AND worker_number = ?
+    });
     my $rv = $sth->execute($username, $worker_number);
     my $row = $sth->fetchrow_arrayref;
     my ($worker_name, $phone) = ($row->[1], $row->[2]);
@@ -118,11 +119,11 @@ sub list_workers($$) {
     }
     my $username = $self->authen->username;
     my $dbh = __PACKAGE__->connect_db;
-    my $sth = $dbh->prepare_cached('
-    SELECT worker_number, worker_name, worker_katakana, phone
-    FROM workers
-    WHERE account_id = ?
-    ORDER BY worker_katakana, worker_number');
+    my $sth = $dbh->prepare_cached(q{
+        SELECT worker_number, worker_name, worker_katakana, phone
+        FROM workers WHERE account_id = ?
+        ORDER BY worker_katakana, worker_number
+    });
     my $rv = $sth->execute($username);
     my @workers = ();
     while (my $row = $sth->fetchrow_arrayref) {
@@ -169,14 +170,14 @@ sub auth_delete($) {
     my $dbh = __PACKAGE__->connect_db
     or return $self->list_workers([
         'failed to connect DB', $DBI::err, $DBI::errstr, $DBI::state]);
-    my $sth = $dbh->prepare_cached('
-    DELETE FROM workers WHERE account_id = ? AND worker_number = ?')
-    or return $self->list_workers([
-        'failed to prepare deleting',
-        $dbh->err, $dbh->errstr, $dbh->state]);
-    my $rv = $sth->execute($username, $worker)
-    or return $self->list_workers([
-        'failed to DELETE', $sth->err, $sth->errstr, $sth->state]);
+    my $sth = $dbh->prepare_cached(q{
+        DELETE FROM workers WHERE account_id = ? AND worker_number = ?
+    }) or return $self->list_workers([
+        'failed to prepare deleting', $dbh->err, $dbh->errstr, $dbh->state
+    ]);
+    my $rv = $sth->execute($username, $worker) or return $self->list_workers([
+        'failed to DELETE', $sth->err, $sth->errstr, $sth->state
+    ]);
     return $self->list_workers([]);
 }
 
@@ -213,7 +214,6 @@ sub edit_worker($$) {
 
 sub auth_add($) {
     my $self = shift;
-    my $username = $self->authen->username;
     return $self->edit_worker({ next_action => 'auth_do_add' });
 }
 
@@ -258,11 +258,9 @@ sub validate($$) {
     my @errors = ();
     unless ($worker and $kana and $phone) {
         push(@errors, '全て入力必須です。');
-    }
-    if ($kana =~ m/([^ヲァィゥェォャュョッ\ーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン゛゜ガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ ]+)/) {
+    } if ($kana =~ m/([^ヲァィゥェォャュョッ\ーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン゛゜ガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ ]+)/) {
         push(@errors, "カタカナ欄の「$1」は不正な文字です。");
-    }
-    if ($phone =~ m/([^\d \-\(\)\+]+)/) {
+    } if ($phone =~ m/([^\d \-\(\)\+]+)/) {
         push(@errors, "電話番号欄の「$1」は不正な文字です。");
     }
     return [@errors];
@@ -283,14 +281,13 @@ sub duplicate($$) {
     my $username = $self->authen->username;
     my @errors = ();
     my $dbh = __PACKAGE__->connect_db;
-    my $sth = $dbh->prepare_cached('
-    SELECT worker_number FROM workers
-    WHERE account_id = ? AND worker_name = ?
-    AND worker_katakana = ? AND phone = ?');
+    my $sth = $dbh->prepare_cached(q{
+        SELECT worker_number FROM workers
+        WHERE account_id = ? AND worker_name = ?
+        AND worker_katakana = ? AND phone = ?
+    });
     $sth->execute($username, $worker, $kana, $phone);
-     if ($sth->fetchrow_arrayref) {
-        push(@errors, '既に登録済みです。');
-     }
+     if ($sth->fetchrow_arrayref) { push(@errors, '既に登録済みです。') }
      return [@errors];
 }
 
@@ -319,26 +316,28 @@ sub auth_do_add($) {
         });
     }
     my $username = $self->authen->username;
-    my $dbh = __PACKAGE__->connect_db
-    or $self->list_workers([
-        'failed to connect DB'], $DBI::err, $DBI::errstr, $DBI::state);
-    my $sth = $dbh->prepare_cached('
-    INSERT INTO workers (
-        worker_number,
-        account_id, affiliation, abbreviation_for_affiliation,
-        worker_name, worker_katakana, phone, creator, updater)
-    SELECT
-        COALESCE(MAX(worker_number), 0) + 1 AS worker_number,
-        ? AS account_id, ? AS affiliation, ? AS abbreviation_for_affiliation,
-        ? AS worker_name, ? AS worker_katakana, ? AS phone,
-        ? AS creator, ? AS updater
-    FROM workers WHERE account_id = ?')
-    or $self->list_workers([
-        'failed to prepare inserting',
-        $dbh->err, $dbh->errstr, $dbh->state]);
-    my $rv = $sth->execute($username, $username, $username,
-    $worker, $kana, $phone, $username, $username, $username)
-    or $self->list_workers([
+    my $dbh = __PACKAGE__->connect_db or return $self->list_workers([
+        'failed to connect DB', $DBI::err, $DBI::errstr, $DBI::state
+    ]);
+    my $sth = $dbh->prepare_cached(q{
+        INSERT INTO workers (
+            worker_number,
+            account_id, affiliation, abbreviation_for_affiliation,
+            worker_name, worker_katakana, phone, creator, updater
+        ) SELECT
+            COALESCE(MAX(worker_number), 0) + 1 AS worker_number,
+            ? AS account_id, ? AS affiliation,
+            ? AS abbreviation_for_affiliation,
+            ? AS worker_name, ? AS worker_katakana, ? AS phone,
+            ? AS creator, ? AS updater
+        FROM workers WHERE account_id = ?
+    }) or return $self->list_workers([
+        'failed to prepare inserting', $dbh->err, $dbh->errstr, $dbh->state
+    ]);
+    my $rv = $sth->execute(
+        $username, $username, $username, $worker, $kana, $phone,
+        $username, $username, $username
+    ) or return $self->list_workers([
         'failed to INSERT', $sth->err, $sth->erstr, $sth->state]);
     return $self->list_workers;
 }
@@ -355,22 +354,21 @@ sub auth_update($) {
         return $self->list_workers(['変更対象を選んでください。']);
     }
     my $username = $self->authen->username;
-    my $dbh = __PACKAGE__->connect_db
-    or $self->list_workers([
-        'failed to connect DB',
-        $DBI::err, $DBI::errstr, $DBI::status]);
-    my $sth = $dbh->prepare_cached('
-    SELECT worker_number, worker_name, worker_katakana, phone
-    FROM workers WHERE account_id = ? AND worker_number = ?')
-    or $self->list_workers([
-        'failed to prepare Selecting',
-        $dbh->err, $dbh->errstr, $dbh->status]);
+    my $dbh = __PACKAGE__->connect_db or return $self->list_workers([
+        'failed to connect DB', $DBI::err, $DBI::errstr, $DBI::status
+    ]);
+    my $sth = $dbh->prepare_cached(q{
+        SELECT worker_number, worker_name, worker_katakana, phone
+        FROM workers WHERE account_id = ? AND worker_number = ?
+    }) or return $self->list_workers([
+        'failed to prepare Selecting', $dbh->err, $dbh->errstr, $dbh->status
+    ]);
     my $rv = $sth->execute($username, $worker_number)
-    or $self->list_workers([
+    or return $self->list_workers([
         'failed to select', $sth->err, $sth->errstr, $sth->status]);
-    my $row = $sth->fetchrow_arrayref
-    or $self->list_workers([
-        'failed to fetch', $sth->err, $sth->errstr, $sth->states]);
+    my $row = $sth->fetchrow_arrayref or return $self->list_workers([
+        'failed to fetch', $sth->err, $sth->errstr, $sth->states
+    ]);
     my ($worker_name, $kana, $phone) = ($row->[1], $row->[2], $row->[3]);
     utf8::decode($worker_name);
     utf8::decode($kana);
@@ -402,21 +400,21 @@ sub auth_do_update($) {
         });
     }
     my $username = $self->authen->username;
-    my $dbh = __PACKAGE__->connect_db or $self->list_workers([
+    my $dbh = __PACKAGE__->connect_db or return $self->list_workers([
         'failed to connect DB', $DBI::err, $DBI::errstr, $DBI::status
     ]);
     # warn($worker, $kana, $phone, $username, $number, $username); 
-    my $sth = $dbh->prepare_cached('
-    UPDATE workers SET
-        worker_name = ?, worker_katakana = ?, phone = ?, updater = ?,
-        update_at = CURRENT_TIMESTAMP
-    WHERE worker_number = ? AND account_id = ?')
-    or $self->list_workers([
+    my $sth = $dbh->prepare_cached(q{
+        UPDATE workers SET
+            worker_name = ?, worker_katakana = ?, phone = ?, updater = ?,
+            update_at = CURRENT_TIMESTAMP
+        WHERE worker_number = ? AND account_id = ?
+    }) or return $self->list_workers([
         'failed to prepare updating', $dbh->err, $dbh->errstr, $dbh->status
     ]);
     my $rv = $sth->execute(
         $worker, $kana, $phone, $username, $number, $username
-    ) or $self->list_workers([
+    ) or return $self->list_workers([
         'failed to UPDATE', $sth->err, $sth->errstr, $sth->status
     ]);
     return $self->list_workers;
@@ -447,9 +445,7 @@ sub auth_self($) {
             push(@results, '<p>', $key, '=', '[', @$value ,']</p>');
         } elsif ($type eq 'HASH') {
             push(@results, '<p>', $key, '=', '{', %$value, '}</p>');
-        } else {
-            push(@results, '<p>', $key, '=', $value, '</p>');
-        }
+        } else { push(@results, '<p>', $key, '=', $value, '</p>'); }
     }
     return "@results"
 }
