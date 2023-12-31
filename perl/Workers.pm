@@ -165,10 +165,18 @@ sub auth_delete($) {
         return $self->list_workers(['削除対象を選んでください。']);
     }
     my $username = $self->authen->username;
-    my $dbh = __PACKAGE__->connect_db;
+    my @messages = ();
+    my $dbh = __PACKAGE__->connect_db
+    or return $self->list_workers([
+        'failed to connect DB', $DBI::err, $DBI::errstr, $DBI::state]);
     my $sth = $dbh->prepare_cached('
-    DELETE FROM workers WHERE account_id = ? AND worker_number = ?');
-    my $rv = $sth->execute($username, $worker);
+    DELETE FROM workers WHERE account_id = ? AND worker_number = ?')
+    or return $self->list_workers([
+        'failed to prepare deleting',
+        $dbh->err, $dbh->errstr, $dbh->state]);
+    my $rv = $sth->execute($username, $worker)
+    or return $self->list_workers([
+        'failed to DELETE', $sth->err, $sth->errstr, $sth->state]);
     return $self->list_workers([]);
 }
 
@@ -311,7 +319,9 @@ sub auth_do_add($) {
         });
     }
     my $username = $self->authen->username;
-    my $dbh = __PACKAGE__->connect_db;
+    my $dbh = __PACKAGE__->connect_db
+    or $self->list_workers([
+        'failed to connect DB'], $DBI::err, $DBI::errstr, $DBI::state);
     my $sth = $dbh->prepare_cached('
     INSERT INTO workers (
         worker_number,
@@ -322,10 +332,14 @@ sub auth_do_add($) {
         ? AS account_id, ? AS affiliation, ? AS abbreviation_for_affiliation,
         ? AS worker_name, ? AS worker_katakana, ? AS phone,
         ? AS creator, ? AS updater
-    FROM workers WHERE account_id = ?');
-    my $rv = $sth->execute(
-        $username, $username, $username, $worker, $kana, $phone,
-        $username, $username, $username);
+    FROM workers WHERE account_id = ?')
+    or $self->list_workers([
+        'failed to prepare inserting',
+        $dbh->err, $dbh->errstr, $dbh->state]);
+    my $rv = $sth->execute($username, $username, $username,
+    $worker, $kana, $phone, $username, $username, $username)
+    or $self->list_workers([
+        'failed to INSERT', $sth->err, $sth->erstr, $sth->state]);
     return $self->list_workers;
 }
 
@@ -341,12 +355,22 @@ sub auth_update($) {
         return $self->list_workers(['変更対象を選んでください。']);
     }
     my $username = $self->authen->username;
-    my $dbh = __PACKAGE__->connect_db;
+    my $dbh = __PACKAGE__->connect_db
+    or $self->list_workers([
+        'failed to connect DB',
+        $DBI::err, $DBI::errstr, $DBI::status]);
     my $sth = $dbh->prepare_cached('
     SELECT worker_number, worker_name, worker_katakana, phone
-    FROM workers WHERE account_id = ? AND worker_number = ?');
-    my $rv = $sth->execute($username, $worker_number);
-    my $row = $sth->fetchrow_arrayref;
+    FROM workers WHERE account_id = ? AND worker_number = ?')
+    or $self->list_workers([
+        'failed to prepare Selecting',
+        $dbh->err, $dbh->errstr, $dbh->status]);
+    my $rv = $sth->execute($username, $worker_number)
+    or $self->list_workers([
+        'failed to select', $sth->err, $sth->errstr, $sth->status]);
+    my $row = $sth->fetchrow_arrayref
+    or $self->list_workers([
+        'failed to fetch', $sth->err, $sth->errstr, $sth->states]);
     my ($worker_name, $kana, $phone) = ($row->[1], $row->[2], $row->[3]);
     utf8::decode($worker_name);
     utf8::decode($kana);
@@ -378,17 +402,24 @@ sub auth_do_update($) {
         });
     }
     my $username = $self->authen->username;
-    my $dbh = __PACKAGE__->connect_db;
+    my $dbh = __PACKAGE__->connect_db or $self->list_workers([
+        'failed to connect DB', $DBI::err, $DBI::errstr, $DBI::status
+    ]);
     # warn($worker, $kana, $phone, $username, $number, $username); 
     my $sth = $dbh->prepare_cached('
     UPDATE workers SET
         worker_name = ?, worker_katakana = ?, phone = ?, updater = ?,
         update_at = CURRENT_TIMESTAMP
-    WHERE worker_number = ? AND account_id = ?');
+    WHERE worker_number = ? AND account_id = ?')
+    or $self->list_workers([
+        'failed to prepare updating', $dbh->err, $dbh->errstr, $dbh->status
+    ]);
     my $rv = $sth->execute(
         $worker, $kana, $phone, $username, $number, $username
-    );
-    return $self->list_workers([]);
+    ) or $self->list_workers([
+        'failed to UPDATE', $sth->err, $sth->errstr, $sth->status
+    ]);
+    return $self->list_workers;
 }
 
 =head2 $html_string = $self->auth_dump; # Dump to debug.
