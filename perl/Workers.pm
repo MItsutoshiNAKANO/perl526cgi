@@ -35,19 +35,25 @@ __PACKAGE__->authen->config(
 
 __PACKAGE__->authen->protected_runmodes(qr/^auth_/);
 
-our $_our_dbh;
+sub _get_default_datasource($) {
+    my $self = shift;
+    my $dbname = $ENV{PGDATABASE} || 'vagrant';
+    return "dbi:Pg:dbname=$dbname";
+}
 
-=head2 my $dbh = __PACKAGE__->connect_db; # Connect to DB.
+=head2 $self->connect_db; # Connect to DB.
 
 =cut
 
-sub connect_db() {
-    if ($_our_dbh) { return $_our_dbh }
-    my $dbname = $ENV{PGDATABASE} || 'vagrant';
-    my $connection_string = "dbi:Pg:dbname=$dbname";
-    my $dbuser = $ENV{PGUSER} || 'apache';
-    my $dbpassword = $ENV{PGPASSWORD} || 'vagrant';
-    return $_our_dbh = DBI->connect($connection_string, $dbuser, $dbpassword);
+sub _connect($$$$$) {
+    my ($self, $data_source, $user, $pass, $attr) = @_;
+    my $db_data_source = $data_source || $self->_get_default_datasource;
+    my $dbuser = $user || $ENV{PGUSER} || 'apache';
+    my $dbpassword = $pass || $ENV{PGPASSWORD} || 'vagrant';
+    my $db_attr = $attr || { AutoCommit => 0 };
+    $self->{dbh} = DBI->connect(
+        $db_data_source, $dbuser, $dbpassword, $db_attr
+    );
 }
 
 =head2 $self->setup; # Setup this class.
@@ -74,7 +80,26 @@ sub setup($) {
     binmode STDIN, ':utf8';
     binmode STDOUT, ':utf8';
     binmode STDERR, ':utf8';
+    $self->_connect;
     $self->header_props(-charset => 'UTF-8');
+}
+
+=head2 my $sth = $self->prepare($statement); # Prepare a statement.
+
+=cut
+
+sub prepare($$) {
+    my ($self, $statement) = @_;
+    return $self->{dbh}->prepare($statement);
+}
+
+=head2 my $rc = $self->commit; # Commit DB.
+
+=cut
+
+sub commit($) {
+    my $self = shift;
+    return $self->{dbh}->commit;
 }
 
 =head2 $self->auth_reflect; # Jump & refrect name.
@@ -89,8 +114,7 @@ sub auth_reflect($) {
         return $self->list_workers(['対象を選んでください。']);
     }
     my $username = $self->authen->username;
-    my $dbh = __PACKAGE__->connect_db;
-    my $sth = $dbh->prepare_cached(q{
+    my $sth = $self->prepare(q{
         SELECT worker_number, worker_name, phone
         FROM workers WHERE account_id = ? AND worker_number = ?
     });
@@ -116,8 +140,7 @@ sub list_workers($$) {
         push(@errors, \%tmp);
     }
     my $username = $self->authen->username;
-    my $dbh = __PACKAGE__->connect_db;
-    my $sth = $dbh->prepare_cached(q{
+    my $sth = $self->prepare(q{
         SELECT worker_number, worker_name, worker_katakana, phone
         FROM workers WHERE account_id = ?
         ORDER BY worker_katakana, worker_number
@@ -165,18 +188,20 @@ sub auth_delete($) {
     }
     my $username = $self->authen->username;
     my @messages = ();
-    my $dbh = __PACKAGE__->connect_db
-    or return $self->list_workers([
-        'failed to connect DB', $DBI::err, $DBI::errstr, $DBI::state]);
-    my $sth = $dbh->prepare_cached(q{
+    my $sth = $self->prepare(q{
         DELETE FROM workers WHERE account_id = ? AND worker_number = ?
     }) or return $self->list_workers([
-        'failed to prepare deleting', $dbh->err, $dbh->errstr, $dbh->state
+        'failed to prepare deleting',
+        $self->{dbh}->err, $self->{dbh}->errstr, $self->{dbh}->state
     ]);
     my $rv = $sth->execute($username, $worker) or return $self->list_workers([
         'failed to DELETE', $sth->err, $sth->errstr, $sth->state
     ]);
-    return $self->list_workers([]);
+    $self->commit or return $self->list_workers([
+        'failed to commit',
+        $self->{dbh}->err, $self->{dbh}->errstr, $self->{dbh}->state
+    ]);
+    return $self->list_workers;
 }
 
 =head2 $edit_screen_html = $self->edit_worker($args); # Show the editor.
@@ -276,8 +301,7 @@ sub duplicate($$) {
     my $phone = $regulated->{phone};
     my $username = $self->authen->username;
     my @errors = ();
-    my $dbh = __PACKAGE__->connect_db;
-    my $sth = $dbh->prepare_cached(q{
+    my $sth = $self->prepare(q{
         SELECT worker_number FROM workers
         WHERE account_id = ? AND worker_name = ?
         AND worker_katakana = ? AND phone = ?
@@ -312,10 +336,7 @@ sub auth_do_add($) {
         });
     }
     my $username = $self->authen->username;
-    my $dbh = __PACKAGE__->connect_db or return $self->list_workers([
-        'failed to connect DB', $DBI::err, $DBI::errstr, $DBI::state
-    ]);
-    my $sth = $dbh->prepare_cached(q{
+    my $sth = $self->prepare(q{
         INSERT INTO workers (
             worker_number,
             account_id, affiliation, abbreviation_for_affiliation,
@@ -328,13 +349,19 @@ sub auth_do_add($) {
             ? AS creator, ? AS updater
         FROM workers WHERE account_id = ?
     }) or return $self->list_workers([
-        'failed to prepare inserting', $dbh->err, $dbh->errstr, $dbh->state
+        'failed to prepare inserting',
+        $self->{dbh}->err, $self->{dbh}->errstr, $self->{dbh}->state
     ]);
     my $rv = $sth->execute(
         $username, $username, $username, $worker, $kana, $phone,
         $username, $username, $username
     ) or return $self->list_workers([
-        'failed to INSERT', $sth->err, $sth->erstr, $sth->state]);
+        'failed to INSERT', $sth->err, $sth->erstr, $sth->state
+    ]);
+    $self->commit or return $self->list_workers([
+        'failed to commit',
+        $self->{dbh}->err, $self->{dbh}->errstr, $self->{dbh}->state
+    ]);
     return $self->list_workers;
 }
 
@@ -350,14 +377,12 @@ sub auth_update($) {
         return $self->list_workers(['変更対象を選んでください。']);
     }
     my $username = $self->authen->username;
-    my $dbh = __PACKAGE__->connect_db or return $self->list_workers([
-        'failed to connect DB', $DBI::err, $DBI::errstr, $DBI::status
-    ]);
-    my $sth = $dbh->prepare_cached(q{
+    my $sth = $self->prepare(q{
         SELECT worker_number, worker_name, worker_katakana, phone
         FROM workers WHERE account_id = ? AND worker_number = ?
     }) or return $self->list_workers([
-        'failed to prepare selecting', $dbh->err, $dbh->errstr, $dbh->status
+        'failed to prepare selecting',
+        $self->{dbh}->err, $self->{dbh}->errstr, $self->{dbh}->status
     ]);
     my $rv = $sth->execute($username, $worker_number)
     or return $self->list_workers([
@@ -396,17 +421,15 @@ sub auth_do_update($) {
         });
     }
     my $username = $self->authen->username;
-    my $dbh = __PACKAGE__->connect_db or return $self->list_workers([
-        'failed to connect DB', $DBI::err, $DBI::errstr, $DBI::status
-    ]);
     # warn($worker, $kana, $phone, $username, $number, $username); 
-    my $sth = $dbh->prepare_cached(q{
+    my $sth = $self->prepare(q{
         UPDATE workers SET
             worker_name = ?, worker_katakana = ?, phone = ?, updater = ?,
             update_at = CURRENT_TIMESTAMP
         WHERE worker_number = ? AND account_id = ?
     }) or return $self->list_workers([
-        'failed to prepare updating', $dbh->err, $dbh->errstr, $dbh->status
+        'failed to prepare updating',
+        $self->{dbh}->err, $self->{dbh}->errstr, $self->{dbh}->status
     ]);
     my $rv = $sth->execute(
         $worker, $kana, $phone, $username, $number, $username
