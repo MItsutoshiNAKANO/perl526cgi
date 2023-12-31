@@ -1,4 +1,5 @@
 CREATE ROLE apache PASSWORD 'vagrant' LOGIN;
+
 CREATE TABLE workers (
     account_id VARCHAR(126),
     worker_number INTEGER,
@@ -13,6 +14,10 @@ CREATE TABLE workers (
     update_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (account_id, worker_number)    
 );
+
+CREATE UNIQUE INDEX unique_workers
+ON workers (worker_name, worker_katakana, phone);
+
 GRANT SELECT ON TABLE workers TO apache;
 GRANT INSERT ON TABLE workers TO apache;
 GRANT UPDATE ON TABLE workers TO apache;
