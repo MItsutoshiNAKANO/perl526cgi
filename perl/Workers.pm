@@ -35,8 +35,11 @@ __PACKAGE__->authen->config(
 
 __PACKAGE__->authen->protected_runmodes(qr/^auth_/);
 
-sub _get_default_datasource($) {
-    my $self = shift;
+=head2 my $data_source
+
+=cut
+
+sub _get_default_datasource() {
     my $dbname = $ENV{PGDATABASE} || 'vagrant';
     return "dbi:Pg:dbname=$dbname";
 }
@@ -47,7 +50,7 @@ sub _get_default_datasource($) {
 
 sub _connect($$$$$) {
     my ($self, $data_source, $user, $pass, $attr) = @_;
-    my $db_data_source = $data_source || $self->_get_default_datasource;
+    my $db_data_source = $data_source || _get_default_datasource;
     my $dbuser = $user || $ENV{PGUSER} || 'apache';
     my $dbpassword = $pass || $ENV{PGPASSWORD} || 'vagrant';
     my $db_attr = $attr || { AutoCommit => 0 };
@@ -84,6 +87,15 @@ sub setup($) {
     $self->header_props(-charset => 'UTF-8');
 }
 
+=head2 $self->tear_down # Tear down.
+
+=cut
+
+sub tear_down($) {
+    my $self = shift;
+    $self->{dbh}->commit;
+}
+
 =head2 my $sth = $self->prepare($statement); # Prepare a statement.
 
 =cut
@@ -91,15 +103,6 @@ sub setup($) {
 sub prepare($$) {
     my ($self, $statement) = @_;
     return $self->{dbh}->prepare($statement);
-}
-
-=head2 my $rc = $self->commit; # Commit DB.
-
-=cut
-
-sub commit($) {
-    my $self = shift;
-    return $self->{dbh}->commit;
 }
 
 =head2 $self->auth_reflect; # Jump & refrect name.
@@ -196,10 +199,6 @@ sub auth_delete($) {
     ]);
     my $rv = $sth->execute($username, $worker) or return $self->list_workers([
         'failed to DELETE', $sth->err, $sth->errstr, $sth->state
-    ]);
-    $self->commit or return $self->list_workers([
-        'failed to commit',
-        $self->{dbh}->err, $self->{dbh}->errstr, $self->{dbh}->state
     ]);
     return $self->list_workers;
 }
@@ -357,10 +356,6 @@ sub auth_do_add($) {
         $username, $username, $username
     ) or return $self->list_workers([
         'failed to INSERT', $sth->err, $sth->erstr, $sth->state
-    ]);
-    $self->commit or return $self->list_workers([
-        'failed to commit',
-        $self->{dbh}->err, $self->{dbh}->errstr, $self->{dbh}->state
     ]);
     return $self->list_workers;
 }
