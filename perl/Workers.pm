@@ -1,6 +1,6 @@
 package Workers;
 
-use 5.26.3;
+use v5.26.3;
 use strict;
 use warnings;
 use utf8;
@@ -120,8 +120,7 @@ sub prepare($$) {
     my ($dbh, $log) = ($self->{dbh}, $self->{log});
     $statement =~ s/\s+/ /g;
     $log->info($statement);
-    my $sth = $dbh->prepare($statement)
-    or $log->error(errinf($dbh));
+    my $sth = $dbh->prepare($statement) or $log->error(errinf($dbh));
     return $sth;
 }
 
@@ -282,17 +281,17 @@ sub regulate($) {
     utf8::decode($phone);
     $worker =~ s/[　\s]+/ /g;
     $worker =~ tr/ｦｧｨｩｪｫｬｭｮｯ\ｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ\ﾞ\ﾟ/ヲァィゥェォャュョッーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン゛゜/;
-    $worker =~ s/^ +//;
-    $worker =~ s/ +$//;
+    $worker =~ s/^\s+//;
+    $worker =~ s/\s+$//;
     $phone =~ s/[　\s]+/ /g;
     $phone =~ tr/０-９\ー\（\）\＋/0-9\-\(\)\+/;
-    $phone =~ s/^ +//;
-    $phone =~ s/ +$//;
+    $phone =~ s/^\s+//;
+    $phone =~ s/\s+$//;
     $kana =~ s/[　\s]+/ /g;
     $kana =~ tr/ｦｧｨｩｪｫｬｭｮｯ\ｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ\ﾞ\ﾟ/ヲァィゥェォャュョッーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン゛゜/;
-    $kana =~ s/^ +//;
-    $kana =~ s/ +$//;
-    return {worker => $worker, kana => $kana, phone => $phone};
+    $kana =~ s/^\s+//;
+    $kana =~ s/\s+$//;
+    return { worker => $worker, kana => $kana, phone => $phone };
 }
 
 =head2 my $errors = $self->validate($regulated); # Validate charactors.
@@ -307,9 +306,11 @@ sub validate($$) {
     my @errors = ();
     unless ($worker and $kana and $phone) {
         push(@errors, '全て入力必須です。');
-    } if ($kana =~ m/([^ヲァィゥェォャュョッ\ーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン゛゜ガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ ]+)/) {
+    }
+    if ($kana =~ m/([^ヲァィゥェォャュョッ\ーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン゛゜ガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ ]+)/) {
         push(@errors, "カタカナ欄の「$1」は不正な文字です。");
-    } if ($phone =~ m/([^\d \-\(\)\+]+)/) {
+    }
+    if ($phone =~ m/([^\d \-\(\)\+]+)/) {
         push(@errors, "電話番号欄の「$1」は不正な文字です。");
     }
     return [@errors];
