@@ -1,5 +1,7 @@
+## @license AGPL-3.0-or-later
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+# You must repeat `vagrant reload --provision`
 $script = <<-SCRIPT
   id -a
   ## @see https://www.if-not-true-then-false.com/2010/install-virtualbox-guest-additions-on-fedora-centos-red-hat-rhel/#14-install-following-packages
@@ -24,7 +26,7 @@ $script = <<-SCRIPT
   sudo -u postgres initdb -D /var/lib/pgsql/data
   systemctl enable postgresql.service
   systemctl start postgresql.service
-  /vagrant/scrips/0010-create_databases.sh
+  /vagrant/scripts/0010-create_database.sh
   sudo -u vagrant /vagrant/scripts/0020-create_tables.sh
   systemctl enable httpd.service
   systemctl start httpd.service
