@@ -335,8 +335,8 @@ sub duplicate($$) {
         AND worker_katakana = ? AND phone = ?
     });
     $self->execute($sth, $username, $worker, $kana, $phone);
-     if ($sth->fetchrow_arrayref) { push(@errors, '既に登録済みです。') }
-     return [@errors];
+    if ($sth->fetchrow_arrayref) { push(@errors, '既に登録済みです。') }
+    return [@errors];
 }
 
 =head2 $html_string = $self->auth_do_add; # Add a worker.
