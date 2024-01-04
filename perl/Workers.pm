@@ -52,7 +52,7 @@ sub _get_default_datasource() {
 
 sub _connect($$$$$) {
     my ($self, $data_source, $user, $pass, $attr) = @_;
-    my $db_data_source = $data_source || _get_default_datasource;
+    my $db_data_source = $data_source || _get_default_datasource();
     my $dbuser = $user || $ENV{PGUSER} || 'apache';
     my $dbpassword = $pass || $ENV{PGPASSWORD} || 'vagrant';
     my $db_attr = $attr || { AutoCommit => 0 };
@@ -152,7 +152,7 @@ sub auth_reflect($) {
         FROM workers WHERE account_id = ? AND worker_number = ?
     });
     my $rv = $self->execute($sth, $username, $worker_number);
-    my $row = $sth->fetchrow_arrayref;
+    my $row = $sth->fetchrow_arrayref();
     my ($worker_name, $phone) = ($row->[1], $row->[2]);
     utf8::decode($worker_name);
     utf8::decode($phone);
