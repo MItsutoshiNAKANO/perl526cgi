@@ -37,7 +37,7 @@ __PACKAGE__->authen->config(
 
 __PACKAGE__->authen->protected_runmodes(qr/^auth_/);
 
-=head2 my $data_source
+=head2 my $data_source = _get_default_datasource;
 
 =cut
 
@@ -66,7 +66,7 @@ sub _connect($$$$$) {
 =cut
 
 sub errinf($) {
-    my $h = shift;
+    my ($h) = @_;
     return ($h->err, $h->errstr, $h->state);
 }
 
@@ -132,8 +132,7 @@ sub prepare($$) {
 sub execute($$@) {
     my ($self, $sth, @params) = @_;
     $self->{log}->info(@params);
-    my $rv = $sth->execute(@params)
-    or $self->{log}->error(errinf($sth));
+    my $rv = $sth->execute(@params) or $self->{log}->error(errinf($sth));
     return $rv;
 }
 
