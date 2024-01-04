@@ -15,6 +15,9 @@
 Description=The Apache HTTP Server
 Wants=httpd-init.service
 After=vboxadd-service.service network.target remote-fs.target nss-lookup.target httpd-init.service
+## @see https://www.freedesktop.org/software/systemd/man/latest/systemd.unit.html
+## @see https://unix.stackexchange.com/questions/654112/wait-for-mount-before-starting-services
+RequiresMountsFor=/vagrant/html
 Documentation=man:httpd.service(8)
 
 [Service]
