@@ -336,7 +336,7 @@ sub duplicate($$) {
         AND worker_katakana = ? AND phone = ?
     });
     $self->execute($sth, $username, $worker, $kana, $phone);
-    if ($sth->fetchrow_arrayref) { push(@errors, '既に登録済みです。') }
+    if ($sth->fetchrow_arrayref()) { push(@errors, '既に登録済みです。') }
     return [@errors];
 }
 
