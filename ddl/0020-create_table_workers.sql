@@ -5,7 +5,7 @@ CREATE TABLE workers (
     worker_number INTEGER,
     affiliation VARCHAR(126),
     abbreviation_for_affiliation VARCHAR(126),
-    worker_name VARCHAR(126),
+    worker_name VARCHAR(126) NOT NULL,
     worker_katakana VARCHAR(126),
     phone VARCHAR(31),
     creator VARCHAR(126),
