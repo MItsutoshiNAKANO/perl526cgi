@@ -37,7 +37,7 @@ __PACKAGE__->authen->config(
 
 __PACKAGE__->authen->protected_runmodes(qr/^auth_/);
 
-=head2 my $data_source = _get_default_datasource;
+=head2 my $data_source = _get_default_datasource();
 
 =cut
 
@@ -46,7 +46,7 @@ sub _get_default_datasource() {
     return "dbi:Pg:dbname=$dbname";
 }
 
-=head2 $self->_connect; # Connect to DB.
+=head2 $self->_connect(); # Connect to DB.
 
 =cut
 
@@ -70,7 +70,7 @@ sub errinf($) {
     return ($h->err, $h->errstr, $h->state);
 }
 
-=head2 $self->setup; # Setup this class.
+=head2 $self->setup(); # Setup this class.
 
 =head3 See Also
 
@@ -101,14 +101,14 @@ sub setup($) {
     $self->header_props(-charset => 'UTF-8');
 }
 
-=head2 $self->teardown # Tear down.
+=head2 $self->teardown() # Tear down.
 
 =cut
 
 sub teardown($) {
     my $self = shift;
-    $self->{dbh}->commit;
-    $self->{dbh}->disconnect;
+    $self->{dbh}->commit();
+    $self->{dbh}->disconnect();
 }
 
 =head2 my $sth = $self->prepare($statement); # Prepare a statement.
@@ -135,13 +135,13 @@ sub execute($$@) {
     return $rv;
 }
 
-=head2 $self->auth_reflect; # Jump & refrect name.
+=head2 $self->auth_reflect(); # Jump & refrect name.
 
 =cut
 
 sub auth_reflect($) {
     my $self = shift;
-    my $q = $self->query;
+    my $q = $self->query();
     my $worker_number = $q->param('check');
     unless ($worker_number) {
         return $self->list_workers(['対象を選んでください。']);
@@ -180,7 +180,7 @@ sub list_workers($$) {
     });
     my $rv = $self->execute($sth, $username);
     my @workers = ();
-    while (my $row = $sth->fetchrow_arrayref) {
+    while (my $row = $sth->fetchrow_arrayref()) {
         my %tmp;
         $tmp{NUMBER} = $row->[0];
         utf8::decode($tmp{NUMBER});
@@ -196,25 +196,25 @@ sub list_workers($$) {
     $template->param(AFFILIATION => $username);
     $template->param(ERRORS => \@errors);
     $template->param(WORKERS => \@workers);
-    return $template->output;
+    return $template->output();
 }
 
-=head2 $html_string = $self->auth_workers; # List workers
+=head2 $html_string = $self->auth_workers(); # List workers
 
 =cut
 
 sub auth_workers($) {
     my $self = shift;
-    return $self->list_workers;
+    return $self->list_workers();
 }
 
-=head2 $html_string = $self->auth_delete; # Delete a worker
+=head2 $html_string = $self->auth_delete(); # Delete a worker
 
 =cut
 
 sub auth_delete($) {
     my $self = shift;
-    my $q = $self->query;
+    my $q = $self->query();
     my $worker = $q->param('check');
     unless ($worker) {
         return $self->list_workers(['削除対象を選んでください。']);
@@ -228,7 +228,7 @@ sub auth_delete($) {
     ]);
     my $rv = $self->execute($sth, $username, $worker)
     or return $self->list_workers(['failed to DELETE', errinf($sth)]);
-    return $self->list_workers;
+    return $self->list_workers();
 }
 
 =head2 $edit_screen_html = $self->edit_worker($args); # Show the editor.
@@ -254,10 +254,10 @@ sub edit_worker($$) {
     $template->param(WORKER => $args->{worker} || '');
     $template->param(KANA => $args->{kana} || '');
     $template->param(PHONE => $args->{phone} || '');
-    return $template->output;
+    return $template->output();
 }
 
-=head2 $html_string = $self->auth_add; # Show the adding screen.
+=head2 $html_string = $self->auth_add(); # Show the adding screen.
 
 =cut
 
@@ -266,13 +266,13 @@ sub auth_add($) {
     return $self->edit_worker({ next_action => 'auth_do_add' });
 }
 
-=head2 my $regulated = $self->regulate; # Regulate charactors.
+=head2 my $regulated = $self->regulate(); # Regulate charactors.
 
 =cut
 
 sub regulate($) {
     my $self = shift;
-    my $q = $self->query;
+    my $q = $self->query();
     my $worker = $q->param('worker');
     utf8::decode($worker);
     my $kana = $q->param('kana');
@@ -340,13 +340,13 @@ sub duplicate($$) {
     return [@errors];
 }
 
-=head2 $html_string = $self->auth_do_add; # Add a worker.
+=head2 $html_string = $self->auth_do_add(); # Add a worker.
 
 =cut
 
 sub auth_do_add($) {
     my $self = shift;
-    my $regulated = $self->regulate;
+    my $regulated = $self->regulate();
     my $worker = $regulated->{worker};
     my $kana = $regulated->{kana};
     my $phone = $regulated->{phone};
@@ -384,16 +384,16 @@ sub auth_do_add($) {
         $sth, $username, $username, $username, $worker, $kana, $phone,
         $username, $username, $username
     ) or return $self->list_workers(['failed to INSERT', errinf($sth)]);
-    return $self->list_workers;
+    return $self->list_workers();
 }
 
-=head2 $html_string = $self->auth_update; # Show the modify screen.
+=head2 $html_string = $self->auth_update(); # Show the modify screen.
 
 =cut
 
 sub auth_update($) {
     my $self = shift;
-    my $q = $self->query;
+    my $q = $self->query();
     my $worker_number = $q->param('check');
     unless ($worker_number) {
         return $self->list_workers(['変更対象を選んでください。']);
@@ -420,17 +420,17 @@ sub auth_update($) {
     });
 }
 
-=head2 $html_string = $self->auth_do_update; # Update a worker.
+=head2 $html_string = $self->auth_do_update(); # Update a worker.
 
 =cut
 
 sub auth_do_update($) {
     my $self = shift;
-    my $regulated = $self->regulate;
+    my $regulated = $self->regulate();
     my $worker = $regulated->{worker};
     my $kana = $regulated->{kana};
     my $phone = $regulated->{phone};
-    my $q = $self->query;
+    my $q = $self->query();
     my $number = $q->param('number');
     my $validate_errors = $self->validate($regulated);
     if (@$validate_errors) {
@@ -453,19 +453,19 @@ sub auth_do_update($) {
     my $rv = $self->execute(
         $sth, $worker, $kana, $phone, $username, $number, $username
     ) or return $self->list_workers(['failed to UPDATE', errinf($sth)]);
-    return $self->list_workers;
+    return $self->list_workers();
 }
 
-=head2 $html_string = $self->auth_dump; # Dump to debug.
+=head2 $html_string = $self->auth_dump(); # Dump to debug.
 
 =cut
 
 sub auth_dump($) {
     my $self = shift;
-    return $self->dump_html;
+    return $self->dump_html();
 }
 
-=head2 $html_string = $self->auth_self; # Dump to debug.
+=head2 $html_string = $self->auth_self(); # Dump to debug.
 
 =cut
 
