@@ -5,7 +5,7 @@ use strict;
 use warnings;
 use utf8;
 
-use base qw(CGI::Application); # make sure this occurs before you load the plugin
+use base qw(CGI::Application);
 use HTML::Template;
 
 sub setup($) {
@@ -35,8 +35,6 @@ sub list_names($) {
 1;
 
 __END__
-
-=pod
 
 =encoding utf8
 
