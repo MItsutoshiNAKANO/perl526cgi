@@ -3,7 +3,6 @@
 
 # You must repeat `vagrant reload --provision`
 $script = <<-SCRIPT
-  id -a
   ## @see https://www.if-not-true-then-false.com/2010/install-virtualbox-guest-additions-on-fedora-centos-red-hat-rhel/#14-install-following-packages
   dnf -y install https://dl.fedoraproject.org/pub/epel/epel-release-latest-8.noarch.rpm
   dnf -y upgrade
@@ -17,7 +16,6 @@ $script = <<-SCRIPT
   echo yes | cpan 'CGI::Application::Plugin::Authentication'
   cpan 'CGI::Application::Plugin::Session'
   cpan 'Mojo::Log'
-  install -b -m 644 -o root -g root /vagrant/root/usr/lib/systemd/system/httpd.service /usr/lib/systemd/system/  
   install -b -m 644 -o root -g root /vagrant/root/etc/selinux/config /etc/selinux/
   setenforce Permissive
   rm -rf /var/www
@@ -28,8 +26,6 @@ $script = <<-SCRIPT
   systemctl start postgresql.service
   /vagrant/scripts/0010-create_database.sh
   sudo -u vagrant /vagrant/scripts/0020-create_tables.sh
-  systemctl enable httpd.service
-  systemctl start httpd.service
 SCRIPT
 
 Vagrant.configure("2") do |config|
@@ -44,4 +40,8 @@ Vagrant.configure("2") do |config|
   end
   config.vm.network "forwarded_port", guest: 80, host: 8080
   config.vm.provision "shell", inline: $script
+  config.trigger.after :up, :reload do |trigger|
+    trigger.info = "Start httpd"
+    trigger.run_remote = {inline: "systemctl start httpd.service"}
+  end
 end
