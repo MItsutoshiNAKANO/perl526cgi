@@ -26,9 +26,12 @@
                     電話
                     <input name="phone" value="<TMPL_VAR NAME=PHONE>">
                 </label>
-            </form>
-            <form id="workers" action="workers.cgi" method="post">
-                <input type="hidden" name="rm" value="auth_workers">
+                <label>
+                    注釈
+                    <textarea name="remark">
+                        <TMPL_VAR NAME="REMARK">
+                    </textarea>
+                </label>
             </form>
             <script src="/js/driver.js"></script>
         </main>

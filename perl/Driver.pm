@@ -16,7 +16,7 @@ use Scalar::Util qw(reftype);
 
 Driver
 
-=head1 MEMBERS
+=head1 DESCRIPTION
 
 =cut
 
@@ -27,7 +27,7 @@ __PACKAGE__->authen->config(
 
 __PACKAGE__->authen->protected_runmodes(qr/^auth_/);
 
-=head2 $self->setup; # Setup.
+=head2 $self->setup(); # Setup.
 
 =cut
 
@@ -43,7 +43,7 @@ sub setup($) {
     $self->header_props(-charset => 'UTF-8');
 }
 
-=head2 $html_string = $self->auth_driver; # Print driver page.
+=head2 $html_string = $self->auth_driver(); # Print driver page.
 
 =cut
 
@@ -54,22 +54,25 @@ sub auth_driver($) {
     utf8::decode($name);
     my $phone = $q->param('phone') || '';
     utf8::decode($phone);
+    my $remark = $q->param('remark') || '';
+    utf8::decode($remark);
     my $template = $self->load_tmpl('driver.html', utf8 => 1);
     $template->param(WORKER => $name);
     $template->param(PHONE => $phone);
-    return $template->output;
+    $template->param(REMARK => $remark);
+    return $template->output();
 }
 
-=head2 $html_string = $self->auth_dump; # Dump to debug.
+=head2 $html_string = $self->auth_dump(); # Dump to debug.
 
 =cut
 
 sub auth_dump($) {
     my $self = shift;
-    return $self->dump_html;
+    return $self->dump_html();
 }
 
-=head2 $html_string = $self->auth_self; # Dump to debug.
+=head2 $html_string = $self->auth_self(); # Dump to debug.
 
 =cut
 
