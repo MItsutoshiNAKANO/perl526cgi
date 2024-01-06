@@ -1,7 +1,7 @@
 # Checklist
 
-* [ ] queryとparamとの混同
-* [ ] ボタンの処理
+* [x] queryとparamとの混同
+* [x] ボタンの処理
 * [ ] 受取側プログラムの処理
 * [ ] validate
 * [ ] error check
