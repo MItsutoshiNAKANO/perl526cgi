@@ -4,7 +4,7 @@
         <meta charset="UTF-8">
         <title>一覧</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link href="/css/workers.css" rel="stylesheet">
+        <link href="/css/edit.css" rel="stylesheet">
         <script src="/node_modules/jquery/dist/jquery.min.js"></script>
     </head>
     <body>
@@ -14,24 +14,45 @@
                 <p><strong><TMPL_VAR NAME="MESSAGE"></strong></p>
             </TMPL_LOOP>
             <form id="form" method="post">
-                <button id="select" type="button">
-                    選択
-                </button>
-                <button type="submit">再読込</button>
-                <label>
-                    名前
-                    <input name="name" value="<TMPL_VAR NAME=WORKER>">
-                </label>
-                <label>
-                    電話
-                    <input name="phone" value="<TMPL_VAR NAME=PHONE>">
-                </label>
-                <label>
-                    注釈
-                    <textarea name="remark">
-                        <TMPL_VAR NAME="REMARK">
-                    </textarea>
-                </label>
+                <p>
+                    <button id="select" type="button">選択</button>
+                    <button type="submit">再読込</button>
+                </p>
+                <table class="fully">
+                    <colgroup>
+                        <col class="label">
+                        <col class="value">
+                    </colgroup>
+                    <tbody>
+                        <tr>
+                            <th class="label">
+                                <label for="worker">名前</label>
+                            </th>
+                            <td class="value">
+                                <input id="worker" class="fully" name="worker"
+                                value="<TMPL_VAR NAME=WORKER>">
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="label">
+                                <label for="phone">電話</label>
+                            </th>
+                            <td class="value">
+                                <input id="phone" class="fully" name="phone"
+                                value="<TMPL_VAR NAME=PHONE>">
+                            </td>
+                        </tr>
+                        <tr>
+                            <th class="label">
+                                <label for="remark">注釈</label>
+                            </th>
+                            <td class="value">
+                                <textarea id="remark" class="fully"
+                                name="remark"><TMPL_VAR NAME="REMARK"></textarea>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </form>
             <script src="/js/driver.js"></script>
         </main>

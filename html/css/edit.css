@@ -6,3 +6,7 @@
 .value {
     width: calc(100% - 4em)
 }
+
+.fully {
+    width: 100%;
+}

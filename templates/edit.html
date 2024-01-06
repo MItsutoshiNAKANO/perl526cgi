@@ -16,16 +16,19 @@
             </TMPL_LOOP>
             <strong></strong>
             <form id="form" method="post">
-                <table>
+                <table class="fully">
                     <colgroup>
                         <col class="label">
                         <col class="value">
                     </colgroup>
                     <tbody>
                         <tr>
-                            <th class="label"><label for="worker">名前</label></th>
+                            <th class="label">
+                                <label for="worker">名前</label>
+                            </th>
                             <td class="value">
-                                <input name="worker" value="<TMPL_VAR NAME=WORKER>">
+                                <input id="worker" class="fully" name="worker"
+                                value="<TMPL_VAR NAME=WORKER>">
                             </td>
                         </tr>
                         <tr>
@@ -33,7 +36,8 @@
                                 <label for="kana">カタカナ</label>
                             </th>
                             <td class="value">
-                                <input name="kana" value="<TMPL_VAR NAME=KANA>">
+                                <input id="kana" class="fully" name="kana"
+                                value="<TMPL_VAR NAME=KANA>">
                             </td>
                         </tr>
                         <tr>
@@ -41,15 +45,21 @@
                                 <label for="phone">電話</label>
                             </th>
                             <td class="value">
-                                <input name="phone" value="<TMPL_VAR NAME=PHONE>">
+                                <input id="phone" class="fully" name="phone"
+                                value="<TMPL_VAR NAME=PHONE>">
                             </td>
                         </tr>
                     </tbody>
                 </table>
-                <input name="account_id" type="hidden" value="<TMPL_VAR NAME=AFFILIATION>">
-                <input name="number" type="hidden" value="<TMPL_VAR NAME=NUMBER>">
-                <button name="rm" value="<TMPL_VAR NAME=NEXT_ACTION>">確定</button>
-                <button name="rm" value="auth_workers">戻る</button>
+                <input name="account_id" type="hidden"
+                value="<TMPL_VAR NAME=AFFILIATION>">
+                <input name="number" type="hidden"
+                value="<TMPL_VAR NAME=NUMBER>">
+                <button name="rm" type="submit"
+                value="<TMPL_VAR NAME=NEXT_ACTION>">確定</button>
+                <button name="rm" type="submit" value="auth_workers">
+                    戻る
+                </button>
             </form>
         </main>
     </body>

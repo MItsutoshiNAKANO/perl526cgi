@@ -5,10 +5,12 @@ use strict;
 use warnings;
 use utf8;
 use base qw(CGI::Application);
-use File::Basename;
-use DBI;
 use CGI::Application::Plugin::Session;
 use CGI::Application::Plugin::Authentication;
+use CGI::Session;
+use URI::Escape;
+use File::Basename;
+use DBI;
 use Scalar::Util qw(reftype); 
 use Mojo::Log;
 
@@ -61,7 +63,9 @@ sub _connect($$$$$) {
     );
 }
 
-=head2 my ($err, $errstr, $state) = errinf($db_handle); # Get error information.
+=head2 my ($err, $errstr, $state) = errinf($db_handle);
+
+Get error information.
 
 =cut
 
@@ -76,7 +80,7 @@ sub errinf($) {
 
 =over 4
 
-=item * CGI::Application
+=item * CGI::Application(3p)
 
 =back
 
@@ -84,20 +88,24 @@ sub errinf($) {
 
 sub setup($) {
     my $self = shift;
-    $self->start_mode('auth_workers');
+    $self->start_mode('auth_enter');
     $self->mode_param('rm');
     $self->run_modes([
-        'auth_workers', 'auth_add', 'auth_do_add',
-        'auth_update', 'auth_do_update', 'auth_delete', 'auth_reflect',
-        'auth_dump', 'auth_self', 'dump_html'
+        'auth_enter', 'auth_reflect', 'auth_return', 'auth_workers',
+        'auth_add', 'auth_do_add', 'auth_update', 'auth_do_update',
+        'auth_delete', 'auth_dump', 'auth_self', 'dump_html'
     ]);
+    my $q = $self->query();
+    my $log_level = $q->param('log_level') ||
+    # 'info';
+    'debug';
     $self->{log} = Mojo::Log->new(
-        path => dirname($0) . '/../logs/workers.log', level => 'info'
+        path => dirname($0) . '/../logs/workers.log', level => $log_level
     );
     binmode STDIN, ':utf8';
     binmode STDOUT, ':utf8';
     binmode STDERR, ':utf8';
-    $self->_connect or $self->{log}->error(errinf(qw(DBI)));
+    $self->_connect() or $self->{log}->error(errinf(qw(DBI)));
     $self->header_props(-charset => 'UTF-8');
 }
 
@@ -124,7 +132,7 @@ sub prepare($$) {
     return $sth;
 }
 
-=head2 my $rv = $self->execute($sth, @params);
+=head2 my $rv = $self->execute($sth, @params); # Execute DB statement.
 
 =cut
 
@@ -135,6 +143,41 @@ sub execute($$@) {
     return $rv;
 }
 
+=head2 my $session = $self->get_my_session(); # Get my session object.
+
+=cut
+
+sub get_my_session($) {
+    my $self = shift;
+    my $q = $self->query();
+    CGI::Session->name('workers');
+    my $session = CGI::Session->new() or die CGI::Session->errstr();
+    $self->{log}->debug($session->name(), $session->id());
+    my $cookie = $q->cookie(
+        -name => $session->name(), -value => $session->id()
+    );
+    $self->header_add(-cookie => [$cookie]);
+    return $session;
+}
+
+=head2 $self->auth_return($); # Back to driver.cgi.
+
+=cut
+
+sub auth_return($) {
+    my $self = shift;
+    my $session = $self->get_my_session();
+    my @params = ();
+    foreach my $key ('worker', 'phone', 'remark') {
+        my $value = $session->param($key);
+        utf8::decode($value);
+        my $encoded = uri_escape_utf8($value);
+        push(@params, "$key=$encoded");
+    }
+    $self->header_type('redirect');
+    $self->header_props(-url => "driver.cgi?" . join('&', @params));
+}
+
 =head2 $self->auth_reflect(); # Jump & refrect name.
 
 =cut
@@ -142,6 +185,7 @@ sub execute($$@) {
 sub auth_reflect($) {
     my $self = shift;
     my $q = $self->query();
+
     my $worker_number = $q->param('check');
     unless ($worker_number) {
         return $self->list_workers(['対象を選んでください。']);
@@ -153,11 +197,23 @@ sub auth_reflect($) {
     });
     my $rv = $self->execute($sth, $username, $worker_number);
     my $row = $sth->fetchrow_arrayref();
-    my ($worker_name, $phone) = ($row->[1], $row->[2]);
-    utf8::decode($worker_name);
+    my ($worker, $phone) = ($row->[1], $row->[2]);
+    utf8::decode($worker);
     utf8::decode($phone);
+
+    my $session = $self->get_my_session();
+    my $remark = $session->param('remark');
+    utf8::decode($remark);
+ 
+    my $enc_worker = uri_escape_utf8($worker);
+    my $enc_phone = uri_escape_utf8($phone);
+    my $enc_remark = uri_escape_utf8($remark);
+
     $self->header_type('redirect');
-    $self->header_props(-url => "driver.cgi?name=$worker_name&phone=$phone");
+    $self->header_props(
+        -url =>
+        "driver.cgi?worker=$enc_worker&phone=$enc_phone&remark=$enc_remark"
+    );
 }
 
 =head2 $html_string = $self->list_workers(\@error_messages); # List.
@@ -196,7 +252,9 @@ sub list_workers($$) {
     $template->param(AFFILIATION => $username);
     $template->param(ERRORS => \@errors);
     $template->param(WORKERS => \@workers);
-    return $template->output();
+    return
+    # $self->dump_html() . # DEBUG
+    $template->output();
 }
 
 =head2 $html_string = $self->auth_workers(); # List workers
@@ -205,6 +263,24 @@ sub list_workers($$) {
 
 sub auth_workers($) {
     my $self = shift;
+    return $self->list_workers();
+}
+
+=head2 $html_string = $self->auth_enter(); # Enter from Driver.
+
+=cut
+
+sub auth_enter($) {
+    my $self = shift;
+    my $q = $self->query();
+    my $session = $self->get_my_session();
+    foreach my $key ('remark', 'worker', 'phone') {
+        my $value = $q->param($key);
+        utf8::decode($value);
+        $self->{log}->debug($key, $value);
+        $session->param($key, $value);
+    }
+    $session->flush();
     return $self->list_workers();
 }
 
@@ -490,12 +566,18 @@ sub auth_self($) {
 
 __END__
 
+=head1 TODO
+
+  * [ ] 画面error messagesのstyle指定機能.
+  * [ ] Error messagesのtoml file化.
+  * [ ] UPDATE時check duplication error.
+
 =head1 SEE ALSO
 
 =over 4
 
-=item * CGI::Application::Plugin::Authentication
+=item * CGI::Application::Plugin::Authentication(3p)
 
-=item * CGI::Application
+=item * CGI::Application(3p)
 
 =back

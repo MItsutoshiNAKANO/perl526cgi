@@ -6,6 +6,7 @@ jQuery(() => {
         jQuery('#form').trigger('submit')
     }
     jQuery('#reflect').on('click', button_handler)
+    jQuery('#return').on('click', button_handler)
     jQuery('#add').on('click', button_handler)
     jQuery('#update').on('click', button_handler)
     jQuery('#delete').on('click', (ev) => {

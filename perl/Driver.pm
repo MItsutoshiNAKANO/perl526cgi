@@ -50,14 +50,14 @@ sub setup($) {
 sub auth_driver($) {
     my $self = shift;
     my $q = $self->query();
-    my $name = $q->param('name') || '';
-    utf8::decode($name);
+    my $worker = $q->param('worker') || '';
+    utf8::decode($worker);
     my $phone = $q->param('phone') || '';
     utf8::decode($phone);
     my $remark = $q->param('remark') || '';
     utf8::decode($remark);
     my $template = $self->load_tmpl('driver.html', utf8 => 1);
-    $template->param(WORKER => $name);
+    $template->param(WORKER => $worker);
     $template->param(PHONE => $phone);
     $template->param(REMARK => $remark);
     return $template->output();
