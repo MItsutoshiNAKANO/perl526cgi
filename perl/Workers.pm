@@ -12,6 +12,7 @@ use URI::Escape;
 use Cwd;
 use TOML::Tiny;
 use DBI;
+use Net::SMTP;
 use Scalar::Util qw(reftype); 
 use Mojo::Log;
 
@@ -59,6 +60,110 @@ sub load_config($$) {
     close(TOML);
     my $parser = TOML::Tiny->new();
     return $parser->decode($toml);
+}
+
+=head2 my $smtp = $self->connect_smtp() or $self->{log}->error($@);
+
+=cut
+
+sub connect_smtp($) {
+    my $self = shift;
+    my $connect_params = $self->{config}->{SMTP}->{connect};
+    return Net::SMTP->new(%{$connect_params});
+}
+
+=head2 $self->authen_smtp($smtp) or $smtp->quit(); # SMTP Auth.
+
+=cut
+
+sub authen_smtp($$) {
+    my ($self, $smtp) = @_;
+    my $authen_params = $self->{config}->{SMTP}->{auth};
+    my $user = $authen_params->{username};
+    my $password = $authen_params->{password};
+    $self->{log}->trace("Net::SMTP->auth($user)");
+    return $smtp->auth($user, $password);
+}
+
+=head2 $self->mail_smtp($smtp); # Set the sender & options.
+
+=cut
+
+sub set_from_smtp($$) {
+    my ($self, $smtp) = @_;
+    my $mail_params = $self->{config}->{SMTP}->{mail};
+    my $sender = $mail_params->{address};
+    my $options = $mail_params->{options};
+    $self->{log}->trace("Net::SMTP->mail($sender)");
+    $smtp->mail($sender, $options && %{$options});
+}
+
+=head2 $self->recipient($smtp) or $self->{log}->error("Couldn't send");
+
+=cut
+
+sub set_to_smtp($$$) {
+    my ($self, $smtp, $additional_recipients) = @_;
+    my $params = $self->{config}->{SMTP}->{recipient};
+    my $default_recipients = $params->{recipients};
+    my @recipients = @{$default_recipients};
+    push(@recipients, @{$additional_recipients}) if $additional_recipients;
+    my $options = $params->{options};
+    $self->{log}->trace("Net::SMTP->recipient(@recipients)");
+    return $options ? $smtp->recipient(@recipients, %{$options})
+    : $smtp->recipient(@recipients);
+}
+
+=head2 $b = $self->send_smtp($data_array_ref, $additional_recipients);
+
+=cut
+
+sub send_smtp($$$) {
+    my ($self, $data_ref, $additional_recipients) = @_;
+    my $smtp = $self->connect_smtp();
+    unless ($smtp) {
+        $self->{log}->error('connect_smtp():', $@);
+        return undef;
+    }
+    unless (
+        $self->authen_smtp($smtp) && $self->set_from_smtp($smtp)
+        && $self->set_to_smtp($smtp, $additional_recipients)
+    ) {
+        $self->{log}->error('send_smtp(): failed prepare', $smtp->message());
+        $smtp->quit();
+        return undef;
+    }
+    my $from = $self->{config}->{SMTP}->{mail}->{address};
+    my $to_ref = $self->{config}->{SMTP}->{recipient}->{recipients};
+    my $to = join(', ', @{$to_ref});
+    my (@data) = ("From: $from\n", "To: $to\n", @{$data_ref});
+    unless ($smtp->data(@data)) {
+        $self->{log}->trace(@data);
+        $self->{log}->error("data():", $smtp->message());
+        $smtp->quit();
+        return undef;
+    }
+    my $results = $smtp->dataend();
+    unless ($results) {
+        $self->{log}->trace(@data);
+        $self->{log}->error("dataend():", $smtp->message());
+    }
+    $smtp->quit();
+    return $results;
+}
+
+=head2 $self->test_mail(); # Send test mail.
+
+=cut
+
+sub test_mail($) {
+    my $self = shift;
+    my $data = [ "Subject: test\n", "\n", "test\n" ];
+    if ($self->send_smtp($data)) {
+        return '<h1>OK</h1>';
+    } else {
+        return '<h1>NG</h1>';
+    }
 }
 
 =head2 my $data_source = _get_default_datasource();
@@ -116,7 +221,8 @@ sub setup($) {
     $self->run_modes([
         'auth_enter', 'auth_reflect', 'auth_return', 'auth_workers',
         'auth_add', 'auth_do_add', 'auth_update', 'auth_do_update',
-        'auth_delete', 'auth_dump', 'auth_self', 'dump_html'
+        'auth_delete',
+        'auth_dump', 'auth_self', 'dump_html', 'test_mail'
     ]);
     binmode(STDIN, ':utf8');
     binmode(STDOUT, ':utf8');
