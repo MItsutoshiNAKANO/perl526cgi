@@ -16,6 +16,7 @@ $script = <<-SCRIPT
   echo yes | cpan 'CGI::Application::Plugin::Authentication'
   cpan 'CGI::Application::Plugin::Session'
   cpan 'Mojo::Log'
+  cpan 'TOML::Tiny'
   install -b -m 644 -o root -g root /vagrant/root/etc/selinux/config /etc/selinux/
   setenforce Permissive
   rm -rf /var/www
