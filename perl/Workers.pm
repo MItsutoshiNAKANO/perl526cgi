@@ -26,7 +26,9 @@ Workers - List & Edit workers.
   use lib '/var/www/perl';
   use Workers;
 
-  my $webapp = Workers->new(TMPL_PATH => dirname($0) . '/../templates');
+  my $webapp = Workers->new(
+      TMPL_PATH => dirname($0) . '/../templates'
+  );
   $webapp->run();
 
 =head1 DESCRIPTION
@@ -568,9 +570,12 @@ __END__
 
 =head1 TODO
 
+  * [ ] Config file.
+  * [ ] Mail.
   * [ ] 画面error messagesのstyle指定機能.
   * [ ] Error messagesのtoml file化.
   * [ ] UPDATE時check duplication error.
+  * [ ] Testable.
 
 =head1 SEE ALSO
 
