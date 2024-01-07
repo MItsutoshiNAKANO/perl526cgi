@@ -8,7 +8,7 @@ $script = <<-SCRIPT
   dnf -y upgrade
   dnf -y install gcc kernel-devel kernel-headers dkms make bzip2 perl
 
-  dnf -y install cpan httpd mod_perl perl-CGI perl-HTML-Template-Expr
+  dnf -y install cpan httpd mod_perl perl-CGI perl-HTML-Template-Expr perl-Authen-SASL
 
   ## @see https://www.postgresql.org/download/linux/redhat/
   dnf -y install postgresql postgresql-server-devel postgresql-contrib postgresql-upgrade-devel perl-DBD-Pg perl-pgsql_perl5
