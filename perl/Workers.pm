@@ -9,7 +9,8 @@ use CGI::Application::Plugin::Session;
 use CGI::Application::Plugin::Authentication;
 use CGI::Session;
 use URI::Escape;
-use File::Basename;
+use Cwd;
+use TOML::Tiny;
 use DBI;
 use Scalar::Util qw(reftype); 
 use Mojo::Log;
@@ -26,9 +27,7 @@ Workers - List & Edit workers.
   use lib '/var/www/perl';
   use Workers;
 
-  my $webapp = Workers->new(
-      TMPL_PATH => dirname($0) . '/../templates'
-  );
+  my $webapp = Workers->new();
   $webapp->run();
 
 =head1 DESCRIPTION
@@ -40,6 +39,27 @@ __PACKAGE__->authen->config(
 );
 
 __PACKAGE__->authen->protected_runmodes(qr/^auth_/);
+
+=head2 my $config = $self->load_config($file_name); # Load config.
+
+=head3 See Also
+
+=over 4
+
+=item * @see https://metacpan.org/pod/TOML::Tiny
+
+=back
+
+=cut
+
+sub load_config($$) {
+    my ($self, $file_name) = @_;
+    open(TOML, '<:utf8', $file_name) or die("Not found $file_name");
+    my $toml = do { local $/; <TOML> };
+    close(TOML);
+    my $parser = TOML::Tiny->new();
+    return $parser->decode($toml);
+}
 
 =head2 my $data_source = _get_default_datasource();
 
@@ -54,8 +74,9 @@ sub _get_default_datasource() {
 
 =cut
 
-sub _connect($$$$$) {
-    my ($self, $data_source, $user, $pass, $attr) = @_;
+sub _connect($$) {
+    my ($self, $parameters) = @_;
+    my ($data_source, $user, $pass, $attr) = @$parameters;
     my $db_data_source = $data_source || _get_default_datasource();
     my $dbuser = $user || $ENV{PGUSER} || 'apache';
     my $dbpassword = $pass || $ENV{PGPASSWORD} || 'vagrant';
@@ -97,18 +118,22 @@ sub setup($) {
         'auth_add', 'auth_do_add', 'auth_update', 'auth_do_update',
         'auth_delete', 'auth_dump', 'auth_self', 'dump_html'
     ]);
-    my $q = $self->query();
-    my $log_level = $q->param('log_level') ||
-    # 'info';
-    'debug';
-    $self->{log} = Mojo::Log->new(
-        path => dirname($0) . '/../logs/workers.log', level => $log_level
+    binmode(STDIN, ':utf8');
+    binmode(STDOUT, ':utf8');
+    binmode(STDERR, ':utf8');
+    my $config = $self->{config} = $self->load_config(
+        $ENV{WORKERS_CONF_FILE_PATH} || '../secrets/Workers.toml'
     );
-    binmode STDIN, ':utf8';
-    binmode STDOUT, ':utf8';
-    binmode STDERR, ':utf8';
-    $self->_connect() or $self->{log}->error(errinf(qw(DBI)));
-    $self->header_props(-charset => 'UTF-8');
+    my $toml = to_toml($config);
+    # warn($toml); # DEBUG config format.
+    my $log = $self->{log} = Mojo::Log->new($config->{Log});
+    $log->trace($toml);
+    $self->_connect($config->{DBI}->{connect})
+    or $log->fatal(errinf(qw(DBI)));
+    $self->tmpl_path($config->{Application}->{tmpl_path} || '../templates');
+    $self->header_props(
+        $config->{Application}->{header_props} || { -charset => 'UTF-8' }
+    );
 }
 
 =head2 $self->teardown() # Tear down.
@@ -570,7 +595,7 @@ __END__
 
 =head1 TODO
 
-  * [ ] Config file.
+  * [x] Config file.
   * [ ] Mail.
   * [ ] 画面error messagesのstyle指定機能.
   * [ ] Error messagesのtoml file化.
