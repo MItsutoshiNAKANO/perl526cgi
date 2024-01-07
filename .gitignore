@@ -194,4 +194,4 @@ dist
 .pnp.*
 
 ### Added by my hands.
-secret/
+secrets/
