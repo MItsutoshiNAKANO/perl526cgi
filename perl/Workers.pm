@@ -24,7 +24,6 @@ Workers - List & Edit workers.
 
 =head1 SYNOPSIS
 
-  use File::Basename;
   use lib '/var/www/perl';
   use Workers;
 
