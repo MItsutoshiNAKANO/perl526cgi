@@ -12,9 +12,11 @@ use URI::Escape;
 use Cwd;
 use TOML::Tiny;
 use DBI;
-use Net::SMTP;
 use Scalar::Util qw(reftype); 
 use Mojo::Log;
+use Email::Stuffer;
+use lib '/var/www/perl';
+use Mtp;
 
 =encoding utf8
 
@@ -58,7 +60,8 @@ sub load_config($$) {
     my $toml = do { local $/; <TOML> };
     close(TOML);
     my $parser = TOML::Tiny->new();
-    return $parser->decode($toml);
+    my $hash_ref = $parser->decode($toml);
+    return $hash_ref;
 }
 
 =head2 my $smtp = $self->connect_smtp() or $self->{log}->error($@);
@@ -151,18 +154,47 @@ sub send_smtp($$$) {
     return $results;
 }
 
+sub send_mail($$$$) {
+    my ($self, $subject, $text, $params) = @_;
+    defined($subject) or die('must set: subject');
+    defined($text) or die('must set: body');
+    my $mtp_params = $self->{config}->{Mtp}
+    or die('Undefined parameter: Mtp');
+    my $mtp = Mtp->new($mtp_params);
+    my $sender = $mtp->sender();
+    my $mail = $self->{config}->{mail} or die('Undefined parameter: mail');
+    my $from = $mail->{from} or die('Undefined parameter: mail.from');
+    my $to_ref = $mail->{to} or die('Undefined parameter: mail.to');
+    my (@to) = @$to_ref;
+
+    my $stuffer = Email::Stuffer->transport($sender)
+    ->from($from)->subject($subject)->text_body($text);
+    if ($params->{to}) {
+        my @additional = reftype($params->{to})
+        ? @{$params->{to}} : $params->{to};
+        push(@to, @additional);
+    }
+    $stuffer = $stuffer->to(@to);
+    if ($params->{cc}) {
+        my @cc = reftype($params->{cc}) ? @{$params->{cc}} : $params->{cc};
+        $stuffer = $stuffer->cc(@cc);
+    }
+    if ($params->{bcc}) {
+        my @bcc = reftype($params->{bcc})
+        ? @{$params->{bcc}} : $params->{bcc};
+        $stuffer = $stuffer->bcc(@bcc);
+    }
+    return $stuffer->send;
+}
+
 =head2 $self->test_mail(); # Send test mail.
 
 =cut
 
 sub test_mail($) {
     my $self = shift;
-    my $data = [ "Subject: test\n", "\n", "test\n" ];
-    if ($self->send_smtp($data)) {
-        return '<h1>OK</h1>';
-    } else {
-        return '<h1>NG</h1>';
-    }
+    $self->send_mail('テスト', "本文1\n本文2") or die('fail $!');
+    return "<h1>done</h1>";
 }
 
 =head2 my $data_source = _get_default_datasource();
@@ -226,9 +258,16 @@ sub setup($) {
     binmode(STDIN, ':utf8');
     binmode(STDOUT, ':utf8');
     binmode(STDERR, ':utf8');
-    my $config = $self->{config} = $self->load_config(
-        $ENV{WORKERS_CONF_FILE_PATH} || '../secrets/Workers.toml'
+    my $config = $self->load_config(
+        $ENV{WORKERS_CONF_FILE_PATH} || '../etc/Workers.toml'
     );
+    foreach my $key (keys(%{$config})) {
+        my $file_path = $config->{$key}->{include};
+        if (defined($file_path) && !reftype($file_path)) {
+            $config->{$key} = $self->load_config($file_path);
+        }
+    }
+
     my $toml = to_toml($config);
     # warn($toml); # DEBUG config format.
     my $log = $self->{log} = Mojo::Log->new($config->{Log});
@@ -239,6 +278,7 @@ sub setup($) {
     $self->header_props(
         $config->{Application}->{header_props} || { -charset => 'UTF-8' }
     );
+    $self->{config} = $config;
 }
 
 =head2 $self->teardown() # Tear down.
