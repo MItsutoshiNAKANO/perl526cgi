@@ -1,0 +1,18 @@
+## @file Configuration file for Workers.pm.
+## @see https://toml.io/en/v1.0.0
+[Application]
+## @see https://metacpan.org/pod/CGI::Application
+tmpl_path="../templates"
+header_props={ -charset = "UTF-8" }
+[Log]
+## @see https://docs.mojolicious.org/Mojo/Log
+path="../logs/workers.log"
+level="info"
+# level="debug"
+# level="trace"
+[DBI]
+include="../secrets/DBI.toml"
+[Mtp]
+include="../secrets/Mtp.toml"
+[mail]
+include="../secrets/mail.toml"
