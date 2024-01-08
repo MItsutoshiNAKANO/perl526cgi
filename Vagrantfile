@@ -13,10 +13,7 @@ $script = <<-SCRIPT
   ## @see https://www.postgresql.org/download/linux/redhat/
   dnf -y install postgresql postgresql-server-devel postgresql-contrib postgresql-upgrade-devel perl-DBD-Pg perl-pgsql_perl5
   
-  echo yes | cpan 'CGI::Application::Plugin::Authentication'
-  cpan 'CGI::Application::Plugin::Session'
-  cpan 'Mojo::Log'
-  cpan 'TOML::Tiny'
+  echo yes | cpan 'CGI::Application::Plugin::Authentication' 'CGI::Application::Plugin::Session' 'Mojo::Log' 'TOML::Tiny' 'Email::Stuffer' 'Email::Sender::Transport::SMTP'
   install -b -m 644 -o root -g root /vagrant/root/etc/selinux/config /etc/selinux/
   setenforce Permissive
   rm -rf /var/www
