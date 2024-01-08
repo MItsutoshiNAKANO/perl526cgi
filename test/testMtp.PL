@@ -9,7 +9,7 @@ use TOML::Tiny;
 use lib '/var/www/perl';
 use Mtp;
 
-my $addresses_file = '../etc/mail.toml';
+my $addresses_file = '../secrets/mail.toml';
 my $address = Mtp->_load($addresses_file);
 
 my $mtp = Mtp->new();
