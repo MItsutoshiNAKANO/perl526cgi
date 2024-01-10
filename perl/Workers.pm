@@ -64,95 +64,9 @@ sub load_config($$) {
     return $hash_ref;
 }
 
-=head2 my $smtp = $self->connect_smtp() or $self->{log}->error($@);
+=head2 $b = $self->send_mail($subject, $text, $params);
 
 =cut
-
-sub connect_smtp($) {
-    my $self = shift;
-    my $connect_params = $self->{config}->{SMTP}->{connect};
-    return Net::SMTP->new(%{$connect_params});
-}
-
-=head2 $self->authen_smtp($smtp) or $smtp->quit(); # SMTP Auth.
-
-=cut
-
-sub authen_smtp($$) {
-    my ($self, $smtp) = @_;
-    my $authen_params = $self->{config}->{SMTP}->{auth};
-    my $user = $authen_params->{username};
-    my $password = $authen_params->{password};
-    $self->{log}->trace("Net::SMTP->auth($user)");
-    return $smtp->auth($user, $password);
-}
-
-=head2 $self->mail_smtp($smtp); # Set the sender & options.
-
-=cut
-
-sub set_from_smtp($$) {
-    my ($self, $smtp) = @_;
-    my $mail_params = $self->{config}->{SMTP}->{mail};
-    my $sender = $mail_params->{address};
-    my $options = $mail_params->{options};
-    $self->{log}->trace("Net::SMTP->mail($sender)");
-    $smtp->mail($sender, $options && %{$options});
-}
-
-=head2 $self->recipient($smtp) or $self->{log}->error("Couldn't send");
-
-=cut
-
-sub set_to_smtp($$$) {
-    my ($self, $smtp, $additional_recipients) = @_;
-    my $params = $self->{config}->{SMTP}->{recipient};
-    my $default_recipients = $params->{recipients};
-    my @recipients = @{$default_recipients};
-    push(@recipients, @{$additional_recipients}) if $additional_recipients;
-    my $options = $params->{options};
-    $self->{log}->trace("Net::SMTP->recipient(@recipients)");
-    return $options ? $smtp->recipient(@recipients, %{$options})
-    : $smtp->recipient(@recipients);
-}
-
-=head2 $b = $self->send_smtp($data_array_ref, $additional_recipients);
-
-=cut
-
-sub send_smtp($$$) {
-    my ($self, $data_ref, $additional_recipients) = @_;
-    my $smtp = $self->connect_smtp();
-    unless ($smtp) {
-        $self->{log}->error('connect_smtp():', $@);
-        return undef;
-    }
-    unless (
-        $self->authen_smtp($smtp) && $self->set_from_smtp($smtp)
-        && $self->set_to_smtp($smtp, $additional_recipients)
-    ) {
-        $self->{log}->error('send_smtp(): failed prepare', $smtp->message());
-        $smtp->quit();
-        return undef;
-    }
-    my $from = $self->{config}->{SMTP}->{mail}->{address};
-    my $to_ref = $self->{config}->{SMTP}->{recipient}->{recipients};
-    my $to = join(', ', @{$to_ref});
-    my (@data) = ("From: $from\n", "To: $to\n", @{$data_ref});
-    unless ($smtp->data(@data)) {
-        $self->{log}->trace(@data);
-        $self->{log}->error("data():", $smtp->message());
-        $smtp->quit();
-        return undef;
-    }
-    my $results = $smtp->dataend();
-    unless ($results) {
-        $self->{log}->trace(@data);
-        $self->{log}->error("dataend():", $smtp->message());
-    }
-    $smtp->quit();
-    return $results;
-}
 
 sub send_mail($$$$) {
     my ($self, $subject, $text, $params) = @_;
@@ -741,7 +655,7 @@ __END__
 =head1 TODO
 
   * [x] Config file.
-  * [ ] Mail.
+  * [x] Mail.
   * [ ] 画面error messagesのstyle指定機能.
   * [ ] Error messagesのtoml file化.
   * [ ] UPDATE時check duplication error.
