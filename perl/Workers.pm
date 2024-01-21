@@ -17,6 +17,7 @@ use Mojo::Log;
 use Email::Stuffer;
 use lib '/var/www/perl';
 use Mtp;
+use WorkerValidator;
 
 =encoding utf8
 
@@ -428,56 +429,6 @@ sub auth_add($) {
     return $self->edit_worker({ next_action => 'auth_do_add' });
 }
 
-=head2 my $regulated = $self->regulate(); # Regulate charactors.
-
-=cut
-
-sub regulate($) {
-    my $self = shift;
-    my $q = $self->query();
-    my $worker = $q->param('worker');
-    utf8::decode($worker);
-    my $kana = $q->param('kana');
-    utf8::decode($kana);
-    my $phone = $q->param('phone');
-    utf8::decode($phone);
-    $worker =~ s/[　\s]+/ /g;
-    $worker =~ tr/ｦｧｨｩｪｫｬｭｮｯ\ｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ\ﾞ\ﾟ/ヲァィゥェォャュョッーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン゛゜/;
-    $worker =~ s/^\s+//;
-    $worker =~ s/\s+$//;
-    $phone =~ s/[　\s]+/ /g;
-    $phone =~ tr/０-９\ー\（\）\＋/0-9\-\(\)\+/;
-    $phone =~ s/^\s+//;
-    $phone =~ s/\s+$//;
-    $kana =~ s/[　\s]+/ /g;
-    $kana =~ tr/ｦｧｨｩｪｫｬｭｮｯ\ｰｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ\ﾞ\ﾟ/ヲァィゥェォャュョッーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン゛゜/;
-    $kana =~ s/^\s+//;
-    $kana =~ s/\s+$//;
-    return { worker => $worker, kana => $kana, phone => $phone };
-}
-
-=head2 my $errors = $self->validate($regulated); # Validate charactors.
-
-=cut
-
-sub validate($$) {
-    my ($self, $regulated) = @_;
-    my $worker = $regulated->{worker};
-    my $kana = $regulated->{kana};
-    my $phone = $regulated->{phone};
-    my @errors = ();
-    unless ($worker and $kana and $phone) {
-        push(@errors, '全て入力必須です。');
-    }
-    if ($kana =~ m/([^ヲァィゥェォャュョッ\ーアイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワン゛゜ガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ ]+)/) {
-        push(@errors, "カタカナ欄の「$1」は不正な文字です。");
-    }
-    if ($phone =~ m/([^\d \-\(\)\+]+)/) {
-        push(@errors, "電話番号欄の「$1」は不正な文字です。");
-    }
-    return [@errors];
-}
-
 =head2 my $errors = $self->duplicate($regulated);
 
 Tell errors if it is duplicated.
@@ -502,20 +453,34 @@ sub duplicate($$) {
     return [@errors];
 }
 
+sub get_regulated_params($$) {
+    my $self = shift;
+    my $validator = shift;
+    my $q = $self->query();
+    my $worker = $q->param('worker');
+    my $kana = $q->param('kana');
+    my $phone = $q->param('phone');
+    return $validator->regulate({
+        worker => $worker, kana => $kana, phone => $phone
+    });
+}
+
 =head2 $html_string = $self->auth_do_add(); # Add a worker.
 
 =cut
 
 sub auth_do_add($) {
     my $self = shift;
-    my $regulated = $self->regulate();
+    my $validator = WorkerValidator->new();
+    my $regulated = $self->get_regulated_params($validator);
     my $worker = $regulated->{worker};
     my $kana = $regulated->{kana};
     my $phone = $regulated->{phone};
-    my $validate_errors = $self->validate($regulated);
-    if (@$validate_errors) {
+    my @validate_errors = $validator->validate($regulated);
+    if (@validate_errors) {
+        my @messages = $validator->get_ja_messages(\@validate_errors);
         return $self->edit_worker({
-            errors => $validate_errors, next_action => 'auth_do_add',
+            errors => \@messages, next_action => 'auth_do_add',
             worker => $worker, kana => $kana, phone => $phone
         });
     }
@@ -588,18 +553,20 @@ sub auth_update($) {
 
 sub auth_do_update($) {
     my $self = shift;
-    my $regulated = $self->regulate();
+    my $validator = WorkerValidator->new();
+    my $regulated = $self->get_regulated_params($validator);
     my $worker = $regulated->{worker};
     my $kana = $regulated->{kana};
     my $phone = $regulated->{phone};
     my $q = $self->query();
     my $number = $q->param('number');
-    my $validate_errors = $self->validate($regulated);
-    if (@$validate_errors) {
+    my @validate_errors = $self->validate($regulated);
+    if (@validate_errors) {
+        my @messages = $validator->get_ja_messages(\@validate_errors);
         return $self->edit_worker({
-            errors => $validate_errors, next_action => 'auth_do_update',
+            errors => \@messages, next_action => 'auth_do_update',
             number => $number,
-            worker => $worker, kana => $kana, phone => $phone,
+            worker => $worker, kana => $kana, phone => $phone
         });
     }
     my $username = $self->authen->username;
@@ -658,7 +625,7 @@ __END__
   * [x] Mail.
   * [ ] 画面error messagesのstyle指定機能.
   * [ ] Error messagesのtoml file化.
-  * [ ] UPDATE時check duplication error.
+  * [x] UPDATE時check duplication error.
   * [ ] Testable.
 
 =head1 SEE ALSO
