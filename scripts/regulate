@@ -1,0 +1,26 @@
+#! /usr/bin/env perl
+
+use v5.26.3;
+use strict;
+use warnings;
+use utf8;
+use Jcode;
+
+sub regulate($) {
+    my $str = shift;
+    utf8::decode($str);
+    $str =~ s{[\s　]+}{ }g;
+    $str =~ s{^[\s　]+}{}g;
+    $str =~ s{[\s　]+$}{}g;
+    $str =~ tr
+    {０-９Ａ-Ｚａ-ｚ\＋\ー\（\）}
+    {0-9A-Za-z\+\-\(\)};
+    my $j = Jcode->new($str);
+    return $j->h2z()->utf8();
+}
+
+while (my $line = <>) {
+    chomp($line);
+    my $regulated = regulate($line);
+    print(STDOUT "$regulated\n");
+}
