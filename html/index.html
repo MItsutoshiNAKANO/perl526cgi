@@ -2,8 +2,24 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8">
-        <meta http-equiv="Refresh" content="0; URL=/cgi-bin/driver.cgi">
-        <title>redirect</title>
         <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Making Dialogbox</title>
+        <link rel="stylesheet" href="./node_modules/jquery-ui/dist/themes/smoothness/jquery-ui.css">
+        <script src="./node_modules/jquery/dist/jquery.min.js"></script>
+        <script src="./node_modules/jquery-ui/dist/jquery-ui.min.js"></script>
     </head>
+    <body>
+        <div id="dialog"></div>
+        <main>
+            <h1>Sample</h1>
+            <p id="buttons">
+                <button id="#btn-1" type="button">1</button>
+                <button id="#btn-2" type="button">2</button>
+            </p>
+            <form>
+                <label><input id="all" type="checkbox"/>All</label>
+            </form>
+        </main>
+        <script src="./js/dialog.js"></script>
+    </body>
 </html>
