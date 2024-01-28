@@ -25,7 +25,7 @@ function ya_confirm (title, message, ok, cancel) {
     })
 }
 
-function yaalert (title, message) {
+function ya_alert (title, message) {
 
 }
 
