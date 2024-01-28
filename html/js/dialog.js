@@ -39,9 +39,13 @@ function ya_alert (title, message) {
 
 }
 
+function phase2() {
+    ya_confirm('title', 'Phase 2')
+}
+
 jQuery(() => {
     jQuery('#btn_1').on('click', function() {
-        ya_confirm('title', 'button_1', alert)
+        ya_confirm('title', 'Phase 1', phase2)
     })
     jQuery('#btn_2').on('click', function() {
         ya_confirm('title', 'button_2', alert)
