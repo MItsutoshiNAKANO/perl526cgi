@@ -6,9 +6,11 @@
 'use strict'
 
 function ya_confirm (title, message, ok, cancel) {
-    const messagebox = document.getElementById('dialog')
-    messagebox.innerText = message
-    jQuery(messagebox).dialog({
+    const parent = document.getElementById('dialog')
+    const dialog = document.createElement('span')
+    dialog.innerText = message
+    parent.insertAdjacentElement('beforeend', dialog)
+    jQuery(dialog).dialog({
         autoOpen: true,
         modal: true,
         title: title,
@@ -17,14 +19,16 @@ function ya_confirm (title, message, ok, cancel) {
                 text: 'OK',
                 click: function () {
                     if (ok) { ok() }
-                    jQuery(this).dialog("close")
+                    jQuery(dialog).dialog('destroy')
+                    dialog.remove()
                 }
             },
             {
                 text: 'Cancel',
                 click: function () {
                     if (cancel) { cancel() }
-                    jQuery(this).dialog("close")
+                    jQuery(dialog).dialog('destroy')
+                    dialog.remove()
                 }
             }
         ]
