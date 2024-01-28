@@ -15,11 +15,17 @@ function ya_confirm (title, message, ok, cancel) {
         buttons: [
             {
                 text: 'OK',
-                click: ok
+                click: function () {
+                    if (ok) { ok() }
+                    jQuery(this).dialog("close")
+                }
             },
             {
                 text: 'Cancel',
-                click: function () { jQuery(this).dialog("close") }
+                click: function () {
+                    if (cancel) { cancel() }
+                    jQuery(this).dialog("close")
+                }
             }
         ]
     })
@@ -31,9 +37,9 @@ function ya_alert (title, message) {
 
 jQuery(() => {
     jQuery('#btn_1').on('click', function() {
-        ya_confirm('title', 'button_1')
+        ya_confirm('title', 'button_1', alert)
     })
     jQuery('#btn_2').on('click', function() {
-        ya_confirm('title', 'button_2')
+        ya_confirm('title', 'button_2', alert)
     })
 })
