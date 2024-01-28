@@ -24,13 +24,15 @@ function ya_confirm (title, message, ok, cancel) {
     jQuery('<div>', { text: message })
 }
 
-function yaalert (title, message) {
+function ya_alert (title, message) {
 
 }
 
 jQuery(() => {
-    jQuery('#buttons button').on('click', function() {
-
+    jQuery('#btn-1').on('click', function() {
+        jQuery("#dialog").dialog("open")
+    })
+    jQuery('#btn-2').on('click', function() {
         jQuery("#dialog").dialog("open")
     })
 })
