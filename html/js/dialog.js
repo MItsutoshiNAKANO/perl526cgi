@@ -40,7 +40,10 @@ function ya_alert (title, message) {
 }
 
 function phase2() {
-    ya_confirm('Is the phase 2 OK?')
+    const all = document.getElementById('all')
+    if (all.checked) {
+        ya_confirm('All was checked.  Continue?')
+    }
 }
 
 jQuery(() => {
