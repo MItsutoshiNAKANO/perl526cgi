@@ -5,23 +5,24 @@
  */
 'use strict'
 
-jQuery("#dialog").dialog({
-    autoOpen: false,
-    modal: true,
-    buttons: [
-        {
-            text: 'OK',
-            click: () => {}
-        },
-        {
-            text: 'Cancel',
-            click: function () { jQuery(this).dialog("close") }
-        }
-    ]
-});
-
 function ya_confirm (title, message, ok, cancel) {
-    jQuery('<div>', { text: message })
+    const messagebox = document.getElementById('dialog')
+    messagebox.innerText = message
+    jQuery(messagebox).dialog({
+        autoOpen: true,
+        modal: true,
+        title: title,
+        buttons: [
+            {
+                text: 'OK',
+                click: ok
+            },
+            {
+                text: 'Cancel',
+                click: function () { jQuery(this).dialog("close") }
+            }
+        ]
+    })
 }
 
 function yaalert (title, message) {
@@ -30,9 +31,9 @@ function yaalert (title, message) {
 
 jQuery(() => {
     jQuery('#btn_1').on('click', function() {
-        jQuery("#dialog").dialog("open")
+        ya_confirm('title', 'button_1')
     })
     jQuery('#btn_2').on('click', function() {
-        jQuery("#dialog").dialog("open")
+        ya_confirm('title', 'button_2')
     })
 })
