@@ -6,7 +6,7 @@
 'use strict'
 
 function ya_confirm (title, message, ok, cancel) {
-    const parent = document.getElementById('dialog')
+    const parent = document.getElementById('body')
     const dialog = document.createElement('span')
     dialog.innerText = message
     parent.insertAdjacentElement('beforeend', dialog)
