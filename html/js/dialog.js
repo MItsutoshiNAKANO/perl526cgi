@@ -5,7 +5,7 @@
  */
 'use strict'
 
-function ya_confirm (title, message, ok, cancel) {
+function ya_confirm (message, ok, cancel, title) {
     const parent = document.getElementById('body')
     const dialog = document.createElement('span')
     dialog.innerText = message
@@ -13,7 +13,7 @@ function ya_confirm (title, message, ok, cancel) {
     jQuery(dialog).dialog({
         autoOpen: true,
         modal: true,
-        title: title,
+        title: title || 'Confirm',
         buttons: [
             {
                 text: 'OK',
@@ -40,14 +40,14 @@ function ya_alert (title, message) {
 }
 
 function phase2() {
-    ya_confirm('title', 'Phase 2')
+    ya_confirm('Is the phase 2 OK?')
 }
 
 jQuery(() => {
     jQuery('#btn_1').on('click', function() {
-        ya_confirm('title', 'Phase 1', phase2)
+        ya_confirm('Is the phase 1 OK?', phase2)
     })
     jQuery('#btn_2').on('click', function() {
-        ya_confirm('title', 'button_2', alert)
+        ya_confirm('button_2', alert)
     })
 })
