@@ -30,7 +30,6 @@ function yaalert (title, message) {
 
 jQuery(() => {
     jQuery('#buttons button').on('click', function() {
-
         jQuery("#dialog").dialog("open")
     })
 })
