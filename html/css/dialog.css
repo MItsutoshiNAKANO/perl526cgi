@@ -1,0 +1,7 @@
+/**
+ * @file a jQuery UI Dialog exsample.
+ * @see https://stackoverflow.com/questions/896777/how-to-remove-close-button-on-the-jquery-ui-dialog
+ */
+
+/** Hide Close button.  */
+.ui-dialog-titlebar-close { visibility: hidden; }
